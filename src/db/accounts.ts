@@ -29,6 +29,8 @@ export interface TransferInput {
   currency: string;
   idempotencyKey: string;
   description?: string;
+  /** 'purchase' routes through make_purchase() (triggers round-up + loyalty points). */
+  kind?: "transfer" | "purchase";
 }
 
 export interface PayableTarget {
@@ -72,13 +74,15 @@ export async function listStudentSpendingWallets(): Promise<StudentWallet[]> {
   return rows as StudentWallet[];
 }
 
-/** Calls the SECURITY DEFINER make_transfer() inside a SERIALIZABLE, retrying txn. */
+/** Moves money via the SECURITY DEFINER make_transfer()/make_purchase() inside a
+ *  SERIALIZABLE, retrying transaction. 'purchase' additionally fires round-up + loyalty. */
 export async function makeTransfer(input: TransferInput): Promise<string> {
+  const fn = input.kind === "purchase" ? "make_purchase" : "make_transfer"; // controlled literal, not user input
   return withTransaction(
     async (client) => {
       const { rows } = await client.query(
-        `SELECT make_transfer($1, $2, $3::numeric, $4, $5::uuid, $6) AS txn_id`,
-        [input.from, input.to, input.amount, input.currency, input.idempotencyKey, input.description ?? "web transfer"],
+        `SELECT ${fn}($1, $2, $3::numeric, $4, $5::uuid, $6) AS txn_id`,
+        [input.from, input.to, input.amount, input.currency, input.idempotencyKey, input.description ?? "web payment"],
       );
       return String(rows[0].txn_id);
     },

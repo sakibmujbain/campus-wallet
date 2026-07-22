@@ -40,7 +40,7 @@ export function PayForm({ wallets, targets }: { wallets: Wallet[]; targets: Targ
       const res = await fetch("/api/transfer", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ from, to, amount, currency, idempotencyKey: idemKey || crypto.randomUUID() }),
+        body: JSON.stringify({ from, to, amount, currency, kind: "purchase", idempotencyKey: idemKey || crypto.randomUUID() }),
       });
       const data = await res.json();
       if (res.ok && data.ok) {

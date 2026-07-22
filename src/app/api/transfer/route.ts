@@ -14,6 +14,7 @@ const Body = z.object({
   amount: z.string().regex(/^\d+(\.\d{1,4})?$/, "amount must be a positive decimal"),
   currency: z.string().length(3),
   idempotencyKey: z.string().uuid().optional(),
+  kind: z.enum(["transfer", "purchase"]).optional(),
 });
 
 export async function POST(req: Request) {
@@ -29,12 +30,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: parsed.error.issues[0]?.message ?? "invalid input" }, { status: 400 });
   }
 
-  const { from, to, amount, currency } = parsed.data;
+  const { from, to, amount, currency, kind } = parsed.data;
   // Server-generated idempotency key unless the client supplied one (safe retries).
   const idempotencyKey = parsed.data.idempotencyKey ?? randomUUID();
 
   try {
-    const txnId = await makeTransfer({ from, to, amount, currency, idempotencyKey });
+    const txnId = await makeTransfer({ from, to, amount, currency, idempotencyKey, kind });
     return NextResponse.json({ ok: true, txnId, idempotencyKey });
   } catch (err) {
     const e = err as { message?: string; code?: string };

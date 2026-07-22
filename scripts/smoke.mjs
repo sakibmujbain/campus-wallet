@@ -38,6 +38,8 @@ try {
   console.log("Building fresh campus entities…");
   const hallId = (await client.query(`INSERT INTO hall(name) VALUES ($1) RETURNING hall_id`, [`SmokeHall-${tag}`])).rows[0].hall_id;
   const treasury = (await client.query(`SELECT open_system_account('treasury','BDT',-1000000000000000) AS id`)).rows[0].id;
+  await client.query(`SELECT open_system_account('loyalty_pool','BDT',-1000000000000000)`); // funds redemptions
+  const cafeTill = (await client.query(`SELECT open_cafeteria_wallet($1,null) AS id`, [`SmokeCafe-${tag}`])).rows[0].id;
 
   async function mkStudent(name, ix) {
     const uid = (await client.query(
@@ -45,7 +47,7 @@ try {
       [`${name.toLowerCase()}-${tag}@smoke.edu.bd`, name],
     )).rows[0].user_id;
     await client.query(
-      `INSERT INTO student(student_id, student_no, enrollment_date, hall_id, batch) VALUES ($1,$2,'2021-08-01',$3,'2021')`,
+      `INSERT INTO student(student_id, student_no, enrollment_date, hall_id, batch) VALUES ($1,$2,(current_date - INTERVAL '1 year'),$3,'2024')`,
       [uid, `SM-${tag}-${ix}`, hallId],
     );
     const spend = (await client.query(`SELECT open_student_wallet($1,'spending') AS id`, [uid])).rows[0].id;
@@ -147,6 +149,67 @@ try {
     if (secdef === true) ok("integrity triggers are SECURITY DEFINER (bypass RLS at COMMIT)");
     else fail("integrity triggers are NOT SECURITY DEFINER — would false-fail under RLS");
   }
+
+  // ── Phase 2: e-KYC state machine, round-up savings, loyalty ────────────
+  // A fully-provisioned student: funded spending, LOCKED savings, round-up on.
+  const carol = await mkStudent("Carol", 3);
+  const carolSave = (await client.query(`SELECT open_student_wallet($1,'savings') AS id`, [carol.uid])).rows[0].id;
+  await client.query(`UPDATE student_wallet SET locked_until = current_date + 30 WHERE account_id = $1`, [carolSave]);
+  await client.query(`INSERT INTO savings_config (student_id, enabled, step, locked_until) VALUES ($1, true, 10, current_date + 30)`, [carol.uid]);
+  await client.query(`SELECT make_transfer($1,$2,1000.00,'BDT',gen_random_uuid(),'fund')`, [treasury, carol.spend]);
+
+  // e-KYC: submit -> illegal transition blocked -> one-active enforced -> approve.
+  const kycId = (await client.query(`SELECT submit_kyc($1,'edu_email') AS id`, [carol.uid])).rows[0].id;
+  await expectError(
+    client.query(`UPDATE kyc_verification SET status='alumni' WHERE verification_id=$1`, [kycId]),
+    "illegal kyc transition", "illegal KYC transition (pending->alumni)");
+  await expectError(
+    client.query(`SELECT submit_kyc($1,'id_card')`, [carol.uid]),
+    "23505", "second active KYC blocked (partial unique)");
+  await client.query(`SELECT approve_kyc($1)`, [kycId]);
+  const kstat = (await client.query(`SELECT status FROM kyc_verification WHERE verification_id=$1`, [kycId])).rows[0].status;
+  if (kstat === "verified") ok("KYC pending->verified via approve()"); else fail(`KYC not verified: ${kstat}`);
+
+  // Round-up: a 33 BDT purchase rounds to 40 -> 7 BDT swept into the locked savings.
+  await client.query(`SELECT make_purchase($1,$2,33.00,'BDT',gen_random_uuid(),'cafeteria')`, [carol.spend, cafeTill]);
+  const cSave = await bal(carolSave);
+  const cSpend = await bal(carol.spend);
+  if (cSave === "7.0000" && cSpend === "960.0000") ok("round-up sweeps spare into locked savings (33 -> +7)");
+  else fail(`round-up wrong: savings=${cSave} spending=${cSpend}`);
+
+  // Tuition Shield: debiting the locked savings wallet is rejected.
+  await expectError(
+    client.query(`SELECT make_transfer($1,$2,1.00,'BDT',gen_random_uuid(),'withdraw')`, [carolSave, carol.spend]),
+    "is locked until", "locked-savings withdrawal");
+
+  // Loyalty: the purchase accrued floor(33*0.1)=3 points (derived SUM).
+  const pts = (await client.query(`SELECT COALESCE(points,0)::text AS p FROM v_point_balance WHERE student_id=$1`, [carol.uid])).rows[0]?.p;
+  if (pts === "3.0000") ok("loyalty points accrue on purchase (33 BDT -> 3 pts)"); else fail(`points wrong: ${pts}`);
+
+  await expectError(
+    client.query(`SELECT redeem_points($1, 999999, gen_random_uuid())`, [carol.uid]),
+    "insufficient points", "over-redemption blocked");
+
+  // Redeem 3 pts -> 0.03 BDT credited; idempotent under replay.
+  const redeemKey = (await client.query(`SELECT gen_random_uuid() AS k`)).rows[0].k;
+  await client.query(`SELECT redeem_points($1, 3, $2)`, [carol.uid, redeemKey]);
+  await client.query(`SELECT redeem_points($1, 3, $2)`, [carol.uid, redeemKey]); // replay
+  const ptsAfter = (await client.query(`SELECT COALESCE(points,0)::text AS p FROM v_point_balance WHERE student_id=$1`, [carol.uid])).rows[0]?.p;
+  const spendAfter = await bal(carol.spend);
+  if (ptsAfter === "0.0000" && spendAfter === "960.0300") ok("points redeemed to BDT, atomic + idempotent"); else fail(`redeem wrong: pts=${ptsAfter} spend=${spendAfter}`);
+
+  // Leaderboard: window-RANK() materialized view refreshes.
+  await client.query(`SELECT refresh_leaderboard()`);
+  const lb = (await client.query(`SELECT count(*)::int AS n FROM mv_loyalty_leaderboard`)).rows[0].n;
+  if (lb >= 1) ok(`loyalty leaderboard refreshes (${lb} ranked)`); else fail("leaderboard empty");
+
+  // The writer functions the app roles call must be SECURITY DEFINER — the app
+  // holds only SELECT, so without it they'd error under the granted roles (this
+  // check runs as owner, which is exactly what masks the bug otherwise).
+  const writersSecdef = (await client.query(
+    `SELECT bool_and(prosecdef) AS ok FROM pg_proc
+      WHERE proname IN ('submit_kyc','approve_kyc','refresh_leaderboard','make_purchase','redeem_points')`)).rows[0].ok;
+  if (writersSecdef === true) ok("KYC/loyalty writer functions are SECURITY DEFINER"); else fail("a writer function is not SECURITY DEFINER");
 
   console.log(`\n${process.exitCode ? "SOME CHECKS FAILED" : "ALL CHECKS PASSED"} — ${passed} passed`);
 } finally {

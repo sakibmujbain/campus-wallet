@@ -152,8 +152,8 @@ src/app/                           Next.js App Router UI + /api/transfer + /api/
 |---|---|---|
 | **0** | Foundations & ledger spine | ✅ done |
 | **1** | Payment Hub — generalization/specialization, RLS, audit | ✅ done |
-| 2 | e-KYC · round-up savings · loyalty | next |
-| 3 | Event wallets & defaulter list (set ops) | |
+| **2** | e-KYC · round-up savings · loyalty | ✅ done |
+| 3 | Event wallets & defaulter list (set ops) | next |
 | 4 | Multi-currency FX bridge | bonus |
 | 5 | Multi-sig wallets & peer escrow | bonus |
 | 6 | Hardening: pgTAP, EXPLAIN, EER, normalization, demo | required |
@@ -164,3 +164,10 @@ src/app/                           Next.js App Router UI + /api/transfer + /api/
 cache↔ledger reconciliation, the `/hub` payment page, and the `app_user`/`student`/`hall` entities.
 The smoke suite grows to **12 checks** (adds totality, disjointness, RLS isolation, audit, reconciliation,
 and a non-bypass-role commit regression).
+
+**Phase 2 adds** (migration `0003`): a data-driven finite **state machine** (`state_transition` + one
+generic `enforce_transition()` trigger) governing **e-KYC** verification (`.edu.bd`/ID-card, one-active
+partial-unique index, alumni derived from `enrollment_date`, `pg_cron` expiry/downgrade); recursion-safe
+**round-up "Tuition Shield" savings** (`make_purchase` → `sweep_roundup` → locked savings bucket); and a
+**loyalty engine** (append-only `point_ledger`, derived balance, atomic idempotent `redeem_points`, a
+`RANK()` materialized-view leaderboard). The smoke suite is now **21 checks**, all green on Supabase.

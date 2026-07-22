@@ -412,8 +412,8 @@ DROP TRIGGER IF EXISTS trg_inst_totality    ON institutional_wallet;
 DROP TRIGGER IF EXISTS trg_account_totality ON account;
 DROP FUNCTION IF EXISTS assert_inst_has_subtype();
 DROP FUNCTION IF EXISTS assert_account_has_subtype();
--- forbid_subtype_delete triggers drop with their tables (DROP TABLE cascades); drop the fn.
-DROP FUNCTION IF EXISTS forbid_subtype_delete();
+-- CASCADE: its BEFORE DELETE triggers on the subtype tables depend on it.
+DROP FUNCTION IF EXISTS forbid_subtype_delete() CASCADE;
 
 DROP TABLE IF EXISTS system_account;
 DROP TABLE IF EXISTS cafeteria_till;

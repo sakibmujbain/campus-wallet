@@ -1,16 +1,21 @@
--- Campus demo seed (Phase 1): halls, institutional wallets, a system treasury,
--- and students each with a funded spending wallet + a savings wallet — all built
--- through the open_* helpers so the disjoint+total subtype hierarchy is honored.
+-- Campus demo seed: halls, institutional payees, a treasury + loyalty pool, and
+-- students each with a funded spending wallet + a LOCKED savings wallet, an
+-- approved e-KYC, and round-up savings enabled. Built through the open_*/*_kyc
+-- helpers so the hierarchy, state machine, and savings all stay consistent.
 -- Safe to re-run (skips when students already exist).
 DO $$
 DECLARE
     v_hall1    BIGINT;
     v_treasury BIGINT;
+    v_pool     BIGINT;
     v_exam     BIGINT;
     v_cafe     BIGINT;
     v_halladm  BIGINT;
     v_uid      BIGINT;
     v_spend    BIGINT;
+    v_save     BIGINT;
+    v_kyc      BIGINT;
+    v_lock     DATE := current_date + INTERVAL '120 days';   -- Tuition Shield until end of term
     s          RECORD;
 BEGIN
     IF EXISTS (SELECT 1 FROM student) THEN
@@ -18,17 +23,15 @@ BEGIN
         RETURN;
     END IF;
 
-    -- Halls
     INSERT INTO hall (name) VALUES ('Shaheed Smriti Hall') RETURNING hall_id INTO v_hall1;
     INSERT INTO hall (name) VALUES ('Bangabandhu Hall');
 
-    -- System + institutional payees
-    v_treasury := open_system_account('treasury', 'BDT', -1000000000000000);  -- opening treasury (may go negative)
+    v_treasury := open_system_account('treasury',     'BDT', -1000000000000000);
+    v_pool     := open_system_account('loyalty_pool', 'BDT', -1000000000000000);  -- funds redemptions
     v_exam     := open_exam_wallet('CSE');
     v_cafe     := open_cafeteria_wallet('Central Cafeteria', 'IOT-CAF-01');
     v_halladm  := open_hall_wallet(v_hall1);
 
-    -- Students: app_user + student + spending & savings wallets, spending funded 1000 BDT
     FOR s IN
         SELECT * FROM (VALUES
             ('Ayesha Rahman', 'ayesha@student.university.edu.bd', 'CSE-2021-001', '2021'),
@@ -38,20 +41,32 @@ BEGIN
     LOOP
         INSERT INTO app_user (email, full_name, role)
             VALUES (s.email, s.full_name, 'student') RETURNING user_id INTO v_uid;
+        -- Enrollment ~2 years ago so students resolve as active/verified today
+        -- (a fixed 2021 date would make them alumni at the demo date).
         INSERT INTO student (student_id, student_no, enrollment_date, hall_id, batch)
-            VALUES (v_uid, s.student_no, (s.batch || '-08-01')::date, v_hall1, s.batch);
+            VALUES (v_uid, s.student_no, (current_date - INTERVAL '2 years')::date, v_hall1, s.batch);
 
+        -- Wallets: fund spending 1000 BDT; lock the savings bucket.
         v_spend := open_student_wallet(v_uid, 'spending');
-        PERFORM open_student_wallet(v_uid, 'savings');
+        v_save  := open_student_wallet(v_uid, 'savings');
+        UPDATE student_wallet SET locked_until = v_lock WHERE account_id = v_save;
         PERFORM make_transfer(v_treasury, v_spend, 1000.00, 'BDT', gen_random_uuid(), 'opening balance');
+
+        -- Round-up savings enabled (nearest 10).
+        INSERT INTO savings_config (student_id, enabled, step, locked_until) VALUES (v_uid, true, 10, v_lock);
+
+        -- e-KYC via .edu.bd email, then approved.
+        v_kyc := submit_kyc(v_uid, 'edu_email');
+        PERFORM approve_kyc(v_kyc);
     END LOOP;
 
-    -- One demo campus payment so the hub has activity: Ayesha pays a 500 BDT exam fee.
-    PERFORM make_transfer(
+    -- Demo purchase with a non-round amount so round-up + loyalty are visible:
+    -- Ayesha pays a 497 BDT exam fee -> 3 BDT swept to savings, floor(497*0.1)=49 points.
+    PERFORM make_purchase(
         (SELECT sw.account_id FROM student_wallet sw
            JOIN student st ON st.student_id = sw.student_id
           WHERE st.student_no = 'CSE-2021-001' AND sw.wallet_purpose = 'spending'),
-        v_exam, 500.00, 'BDT', gen_random_uuid(), 'exam fee — CSE');
+        v_exam, 497.00, 'BDT', gen_random_uuid(), 'exam fee — CSE');
 
-    RAISE NOTICE 'seed complete: 2 halls, 3 institutional payees, 3 students';
+    RAISE NOTICE 'seed complete: 2 halls, 3 payees, treasury+loyalty pool, 3 verified students';
 END $$;

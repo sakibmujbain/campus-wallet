@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Campus Wallet">
+  <rect width="512" height="512" rx="112" fill="#0c8577"/>
+  <path d="M112 176a40 40 0 0 1 40-40h208a24 24 0 0 1 0 48H160a8 8 0 0 0 0 16h216a40 40 0 0 1 40 40v112a40 40 0 0 1-40 40H152a40 40 0 0 1-40-40V176z" fill="#fff"/>
+  <circle cx="356" cy="304" r="26" fill="#0c8577"/>
+</svg>

@@ -1,0 +1,26 @@
+name: Keep-alive
+
+# Free-tier Supabase auto-pauses after ~7 days idle, and in-DB pg_cron does NOT
+# count as activity. This pings the deployed /api/health route every 3 days so the
+# database never sleeps before a grading demo.
+# Setup: add a repo secret KEEPALIVE_URL = https://<your-app>.vercel.app/api/health
+#
+# Note: GitHub disables scheduled workflows after ~60 days of repo inactivity —
+# commit occasionally so this keeps firing through the semester.
+
+on:
+  schedule:
+    - cron: "0 6 */3 * *" # 06:00 UTC every 3rd day
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping health endpoint
+        run: |
+          if [ -z "${{ secrets.KEEPALIVE_URL }}" ]; then
+            echo "KEEPALIVE_URL secret not set — skipping. Add it once the app is deployed."
+            exit 0
+          fi
+          curl -fsS "${{ secrets.KEEPALIVE_URL }}" && echo " — keep-alive ping ok"

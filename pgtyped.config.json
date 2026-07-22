@@ -1,0 +1,21 @@
+{
+  "$comment": "pgTyped generates compile-time TS types from literal .sql files — SQL stays the source of truth, no ORM. Run `npm run pgtyped` against a live DB (uses the PG* env vars).",
+  "transforms": [
+    {
+      "mode": "sql",
+      "include": "**/*.sql",
+      "emitFileName": "{{name}}.queries.ts"
+    }
+  ],
+  "srcDir": "./src/db/queries/",
+  "failOnError": true,
+  "camelCaseColumnNames": true,
+  "db": {
+    "host": "${PGHOST}",
+    "port": "${PGPORT}",
+    "user": "${PGUSER}",
+    "password": "${PGPASSWORD}",
+    "dbName": "${PGDATABASE}",
+    "ssl": { "rejectUnauthorized": false }
+  }
+}

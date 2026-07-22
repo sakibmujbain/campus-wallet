@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  db-and-app:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: campus_wallet
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # CI uses the local service Postgres (no SSL). The scripts auto-detect this.
+      DATABASE_URL_DIRECT: postgresql://postgres:postgres@localhost:5432/campus_wallet
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/campus_wallet
+      PG_POOL_MAX: "3"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          # No `cache: npm` yet — it requires a committed lockfile and would fail
+          # the job before install. Once you run `npm install` locally and commit
+          # package-lock.json, add `cache: npm` here and switch the step below to `npm ci`.
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run migrations
+        run: npm run migrate
+
+      - name: Ledger smoke test (invariants)
+        run: npm run db:smoke
+
+      - name: Type-check & build
+        run: npm run build

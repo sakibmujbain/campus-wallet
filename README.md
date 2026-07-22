@@ -150,10 +150,17 @@ src/app/                           Next.js App Router UI + /api/transfer + /api/
 
 | Phase | Focus | Status |
 |---|---|---|
-| **0** | Foundations & ledger spine | ✅ scaffolded here |
-| 1 | Payment Hub — generalization/specialization, RLS, audit | next |
-| 2 | e-KYC · round-up savings · loyalty | |
+| **0** | Foundations & ledger spine | ✅ done |
+| **1** | Payment Hub — generalization/specialization, RLS, audit | ✅ done |
+| 2 | e-KYC · round-up savings · loyalty | next |
 | 3 | Event wallets & defaulter list (set ops) | |
 | 4 | Multi-currency FX bridge | bonus |
 | 5 | Multi-sig wallets & peer escrow | bonus |
 | 6 | Hardening: pgTAP, EXPLAIN, EER, normalization, demo | required |
+
+**Phase 1 adds** (migration `0002`): a two-level disjoint+total account subtype hierarchy
+(`student_wallet` / `institutional_wallet` → `hall_administration`/`exam_controller`/`cafeteria_till` / `system_account`),
+`open_*` helper functions, Row-Level Security, a generic append-only audit trail, symmetric
+cache↔ledger reconciliation, the `/hub` payment page, and the `app_user`/`student`/`hall` entities.
+The smoke suite grows to **12 checks** (adds totality, disjointness, RLS isolation, audit, reconciliation,
+and a non-bypass-role commit regression).

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { listAccountsWithBalances } from "@/db/accounts";
 import { TransferForm } from "./transfer-form";
 
@@ -28,6 +29,9 @@ export default async function Home() {
       <p className="sub">
         Every balance below is <strong>derived</strong> from the append-only double-entry ledger — not stored.
         A transfer posts two balanced legs inside one atomic, idempotent transaction.
+      </p>
+      <p style={{ marginBottom: "1.5rem" }}>
+        <Link href="/hub">Go to the campus payment hub →</Link>
       </p>
 
       {dbError ? (

@@ -11,10 +11,10 @@ export interface AccountBalance {
 
 export async function listAccountsWithBalances(): Promise<AccountBalance[]> {
   const { rows } = await pool.query(
-    `SELECT account_id   AS "accountId",
-            account_kind AS "accountKind",
+    `SELECT account_id::int AS "accountId",
+            account_kind     AS "accountKind",
             currency,
-            balance::text AS balance
+            balance::text    AS balance
        FROM v_account_balance
       ORDER BY account_id`,
   );
@@ -29,6 +29,47 @@ export interface TransferInput {
   currency: string;
   idempotencyKey: string;
   description?: string;
+}
+
+export interface PayableTarget {
+  accountId: number;
+  currency: string;
+  instKind: string;
+  label: string;
+}
+
+/** The unified list of campus payees (hall / exam / cafeteria) across subtypes. */
+export async function listPayableTargets(): Promise<PayableTarget[]> {
+  const { rows } = await pool.query(
+    `SELECT account_id::int AS "accountId", currency, inst_kind AS "instKind", label
+       FROM v_payable_targets
+      ORDER BY inst_kind, label`,
+  );
+  return rows as PayableTarget[];
+}
+
+export interface StudentWallet {
+  accountId: number;
+  studentName: string;
+  studentNo: string;
+  balance: string;
+}
+
+/** Student spending wallets, with the owner's name — the "pay from" list. */
+export async function listStudentSpendingWallets(): Promise<StudentWallet[]> {
+  const { rows } = await pool.query(
+    `SELECT sw.account_id::int AS "accountId",
+            au.full_name  AS "studentName",
+            st.student_no AS "studentNo",
+            COALESCE(b.balance, 0)::text AS balance
+       FROM student_wallet sw
+       JOIN student  st ON st.student_id = sw.student_id
+       JOIN app_user au ON au.user_id    = st.student_id
+       LEFT JOIN account_balance b ON b.account_id = sw.account_id
+      WHERE sw.wallet_purpose = 'spending'
+      ORDER BY au.full_name`,
+  );
+  return rows as StudentWallet[];
 }
 
 /** Calls the SECURITY DEFINER make_transfer() inside a SERIALIZABLE, retrying txn. */

@@ -129,8 +129,13 @@ CREATE TRIGGER trg_entry_balance
 -- (c) DEFERRED per-currency zero-sum: every transaction must net to zero for
 --     each currency, checked at COMMIT so multi-leg inserts are legal mid-txn.
 --     A single non-zero leg cannot net to zero, so this also enforces "≥2 legs".
+-- SECURITY DEFINER (owned by a BYPASSRLS role): this DEFERRED check fires at COMMIT
+-- in the *session* role's context. If that role is RLS-subject (a restricted app
+-- role), FORCE RLS on ledger_entry would hide the counterparty legs and the check
+-- would false-fail on a valid transfer (or pass an RLS-hidden imbalance). Running as
+-- the definer makes it see every leg regardless of who commits.
 CREATE FUNCTION assert_txn_balanced() RETURNS trigger
-LANGUAGE plpgsql AS $$
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
     IF EXISTS (
         SELECT 1 FROM ledger_entry
@@ -154,7 +159,7 @@ CREATE CONSTRAINT TRIGGER trg_ledger_balanced
 --      the per-currency zero-sum above, this closes the "empty header" hole:
 --      a legs-less (and therefore unbalanced) transaction can never persist.
 CREATE FUNCTION assert_txn_has_legs() RETURNS trigger
-LANGUAGE plpgsql AS $$
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$   -- see assert_txn_balanced note
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM ledger_entry WHERE txn_id = NEW.txn_id) THEN
         RAISE EXCEPTION 'transaction % has no legs', NEW.txn_id
@@ -267,10 +272,12 @@ END $$;
 GRANT USAGE ON SCHEMA public TO app_read, app_write, app_admin;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO app_read, app_write, app_admin;
 
--- app_write may append ledger rows and maintain the cache, but never mutate history.
-GRANT INSERT ON ledger_transaction, ledger_entry TO app_write;
-GRANT INSERT, UPDATE ON account_balance TO app_write;
-REVOKE UPDATE, DELETE, TRUNCATE ON ledger_transaction, ledger_entry FROM app_write, app_admin;
+-- app_write moves money ONLY through make_transfer() (SECURITY DEFINER); it holds
+-- NO direct DML on the ledger or cache, so every mutation is funneled and audited.
+-- (make_transfer runs as its bypassrls owner, so it writes the legs; the maintain
+-- and deferred triggers run in that same definer context.)
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON ledger_transaction, ledger_entry FROM app_write, app_admin;
+REVOKE INSERT, UPDATE, DELETE ON account_balance FROM app_write, app_admin;
 
 -- Money movement funnels through the SECURITY DEFINER function.
 GRANT EXECUTE ON FUNCTION make_transfer(BIGINT, BIGINT, NUMERIC, CHAR, UUID, TEXT, BIGINT) TO app_write, app_admin;
@@ -279,7 +286,9 @@ GRANT app_read  TO app_write;
 GRANT app_write TO app_admin;
 
 -- Convenience read view: accounts with their derived (cached) balance.
-CREATE VIEW v_account_balance AS
+-- security_invoker so the caller's RLS on account_balance applies (a plain view
+-- would run as its bypassrls owner and leak every balance past ab_owner).
+CREATE VIEW v_account_balance WITH (security_invoker = true) AS
 SELECT a.account_id,
        a.account_kind,
        a.currency,

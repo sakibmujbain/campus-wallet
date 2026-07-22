@@ -6,8 +6,10 @@ import { makeTransfer } from "@/db/accounts";
 export const runtime = "nodejs"; // needs the `pg` driver, not the edge runtime
 
 const Body = z.object({
-  from: z.number().int().positive(),
-  to: z.number().int().positive(),
+  // account ids arrive as numbers from the UI, but BIGINT round-trips as strings
+  // via node-postgres, so coerce to be safe against both.
+  from: z.coerce.number().int().positive(),
+  to: z.coerce.number().int().positive(),
   // Decimal STRING (never a float) — up to 4 fractional digits, matching NUMERIC(20,4).
   amount: z.string().regex(/^\d+(\.\d{1,4})?$/, "amount must be a positive decimal"),
   currency: z.string().length(3),

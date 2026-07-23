@@ -211,6 +211,43 @@ try {
       WHERE proname IN ('submit_kyc','approve_kyc','refresh_leaderboard','make_purchase','redeem_points')`)).rows[0].ok;
   if (writersSecdef === true) ok("KYC/loyalty writer functions are SECURITY DEFINER"); else fail("a writer function is not SECURITY DEFINER");
 
+  // ── Phase 3: event wallets, defaulter list (EXCEPT), club overlap (INTERSECT) ──
+  const eventId = (await client.query(`SELECT create_event('Smoke Picnic','2024',$1,NULL) AS id`, [alice.uid])).rows[0].id;
+  await client.query(`INSERT INTO event_roster(event_id, student_id, expected_amount) VALUES ($1,$2,500),($1,$3,500),($1,$4,500)`, [eventId, alice.uid, bob.uid, carol.uid]);
+  await client.query(`SELECT pay_event($1,$2,500.00,gen_random_uuid())`, [alice.spend, eventId]); // full
+  await client.query(`SELECT pay_event($1,$2,200.00,gen_random_uuid())`, [bob.spend, eventId]);   // partial; carol unpaid
+
+  const defRows = (await client.query(`SELECT student_id::int AS sid FROM v_event_defaulters WHERE event_id=$1`, [eventId])).rows;
+  const defSet = new Set(defRows.map((r) => r.sid));
+  if (defRows.length === 2 && defSet.has(Number(bob.uid)) && defSet.has(Number(carol.uid)) && !defSet.has(Number(alice.uid)))
+    ok("defaulter list via EXCEPT (Bob partial + Carol unpaid; Alice cleared)");
+  else fail(`defaulters wrong: ${JSON.stringify(defRows)}`);
+
+  await client.query(`SELECT refund_event($1,$2,500.00,gen_random_uuid())`, [eventId, alice.spend]);
+  const defAfter = (await client.query(`SELECT count(*)::int AS n FROM v_event_defaulters WHERE event_id=$1`, [eventId])).rows[0].n;
+  if (defAfter === 3) ok("refund re-adds the student to the defaulter list"); else fail(`refund re-add wrong: ${defAfter}`);
+
+  // Refund cap: can't refund more than the student's own net contribution (Bob paid 200).
+  await expectError(
+    client.query(`SELECT refund_event($1,$2,999.00,gen_random_uuid())`, [eventId, bob.spend]),
+    "exceeds student net contribution", "over-refund blocked (cap)");
+
+  const clubA = (await client.query(`INSERT INTO club(name) VALUES ($1) RETURNING club_id`, [`SmokeClubA-${tag}`])).rows[0].club_id;
+  const clubB = (await client.query(`INSERT INTO club(name) VALUES ($1) RETURNING club_id`, [`SmokeClubB-${tag}`])).rows[0].club_id;
+  await client.query(`INSERT INTO club_member(club_id, student_id) VALUES ($1,$2),($1,$3)`, [clubA, alice.uid, bob.uid]);
+  await client.query(`INSERT INTO club_member(club_id, student_id) VALUES ($1,$2),($1,$3)`, [clubB, bob.uid, carol.uid]);
+  const overlap = (await client.query(`SELECT student_id::int AS sid FROM club_overlap($1,$2)`, [clubA, clubB])).rows;
+  if (overlap.length === 1 && Number(overlap[0].sid) === Number(bob.uid)) ok("club overlap via INTERSECT (only the shared member)");
+  else fail(`INTERSECT wrong: ${JSON.stringify(overlap)}`);
+
+  // Pooled totality: a bare pooled account with no event subtype is rejected at COMMIT.
+  await expectError((async () => {
+    await client.query("BEGIN");
+    await client.query(`INSERT INTO account (account_kind, currency) VALUES ('pooled','BDT')`);
+    await client.query("COMMIT");
+  })(), "has no subtype", "pooled account without subtype");
+  await client.query("ROLLBACK").catch(() => {});
+
   console.log(`\n${process.exitCode ? "SOME CHECKS FAILED" : "ALL CHECKS PASSED"} — ${passed} passed`);
 } finally {
   await client.end();

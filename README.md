@@ -153,8 +153,8 @@ src/app/                           Next.js App Router UI + /api/transfer + /api/
 | **0** | Foundations & ledger spine | ✅ done |
 | **1** | Payment Hub — generalization/specialization, RLS, audit | ✅ done |
 | **2** | e-KYC · round-up savings · loyalty | ✅ done |
-| 3 | Event wallets & defaulter list (set ops) | next |
-| 4 | Multi-currency FX bridge | bonus |
+| **3** | Event wallets & defaulter list (set ops) | ✅ done |
+| 4 | Multi-currency FX bridge | bonus (next) |
 | 5 | Multi-sig wallets & peer escrow | bonus |
 | 6 | Hardening: pgTAP, EXPLAIN, EER, normalization, demo | required |
 
@@ -171,3 +171,11 @@ partial-unique index, alumni derived from `enrollment_date`, `pg_cron` expiry/do
 **round-up "Tuition Shield" savings** (`make_purchase` → `sweep_roundup` → locked savings bucket); and a
 **loyalty engine** (append-only `point_ledger`, derived balance, atomic idempotent `redeem_points`, a
 `RANK()` materialized-view leaderboard). The smoke suite is now **21 checks**, all green on Supabase.
+
+**Phase 3 adds** (migration `0004`): the **pooled_wallet → event_wallet** arm of the account hierarchy,
+CR/club **event wallets** with a **real-time defaulter list built via `EXCEPT`** (roster minus fully-paid,
+correct under partial payments and refunds), **`INTERSECT`** for cross-club overlap, and a `RANK()`
+collection-progress view. Also ships `db/showcase-queries.sql` (a gradeable artifact: one query per
+advanced construct — EXCEPT/INTERSECT/UNION, running-total & RANK windows, ROLLUP, LATERAL, a recursive
+CTE, correlated subqueries) and the **`/events`** page (live progress bars + defaulter list). Smoke suite:
+**27 checks**, all green. **This completes the guaranteed-gradeable core (Phases 0–3).**

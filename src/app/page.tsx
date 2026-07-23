@@ -31,7 +31,7 @@ export default async function Home() {
         A transfer posts two balanced legs inside one atomic, idempotent transaction.
       </p>
       <p style={{ marginBottom: "1.5rem" }}>
-        <Link href="/hub">Go to the campus payment hub →</Link>
+        <Link href="/hub">Payment hub →</Link> · <Link href="/events">Events &amp; defaulters →</Link>
       </p>
 
       {dbError ? (

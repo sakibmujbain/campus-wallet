@@ -89,3 +89,48 @@ export async function makeTransfer(input: TransferInput): Promise<string> {
     { isolation: "serializable" },
   );
 }
+
+export interface EventProgress {
+  eventId: number;
+  name: string;
+  batch: string | null;
+  rosterSize: number;
+  target: string;
+  collected: string;
+  pctCollected: string | null;
+}
+
+/** Live collection progress per event (from the aggregate/window view). */
+export async function listEventProgress(): Promise<EventProgress[]> {
+  const { rows } = await pool.query(
+    `SELECT event_id::int   AS "eventId",
+            name, batch,
+            roster_size::int AS "rosterSize",
+            target::text, collected::text,
+            pct_collected::text AS "pctCollected"
+       FROM v_event_progress
+      ORDER BY event_id`,
+  );
+  return rows as EventProgress[];
+}
+
+export interface Defaulter {
+  eventId: number;
+  studentName: string;
+  expected: string;
+  paid: string;
+  outstanding: string;
+}
+
+/** The live defaulter list across events (roster EXCEPT fully-paid). */
+export async function listDefaulters(): Promise<Defaulter[]> {
+  const { rows } = await pool.query(
+    `SELECT event_id::int AS "eventId",
+            full_name     AS "studentName",
+            expected_amount::text AS expected,
+            paid::text, outstanding::text
+       FROM v_event_defaulters
+      ORDER BY event_id, full_name`,
+  );
+  return rows as Defaulter[];
+}

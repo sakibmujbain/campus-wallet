@@ -248,6 +248,25 @@ try {
   })(), "has no subtype", "pooled account without subtype");
   await client.query("ROLLBACK").catch(() => {});
 
+  // ── Auth provisioning (provision_student) ──
+  const authUid = (await client.query(`SELECT gen_random_uuid() AS u`)).rows[0].u;
+  const pid1 = (await client.query(`SELECT provision_student($1::uuid, $2, $3) AS id`, [authUid, `newstu-${tag}@x.edu.bd`, "New Student"])).rows[0].id;
+  const pid2 = (await client.query(`SELECT provision_student($1::uuid, $2, $3) AS id`, [authUid, `newstu-${tag}@x.edu.bd`, "New Student"])).rows[0].id;
+  if (pid1 === pid2) ok("provision_student is idempotent"); else fail(`provision not idempotent: ${pid1} ${pid2}`);
+
+  const prov = (await client.query(
+    `SELECT (SELECT status FROM kyc_verification WHERE student_id=$1) AS kyc,
+            (SELECT count(*)::int FROM student_wallet WHERE student_id=$1) AS wallets,
+            (SELECT b.balance::text FROM student_wallet sw JOIN account_balance b ON b.account_id=sw.account_id
+              WHERE sw.student_id=$1 AND sw.wallet_purpose='spending') AS spend`, [pid1])).rows[0];
+  if (prov.kyc === "verified" && prov.wallets === 2 && prov.spend === "1000.0000")
+    ok("provisioned student: verified KYC + 2 wallets + 1000 welcome credit");
+  else fail(`provision wrong: ${JSON.stringify(prov)}`);
+
+  await expectError(
+    client.query(`SELECT provision_student(gen_random_uuid(), $1, 'X')`, [`bad-${tag}@gmail.com`]),
+    "requires a .edu.bd", "non-.edu.bd registration blocked");
+
   console.log(`\n${process.exitCode ? "SOME CHECKS FAILED" : "ALL CHECKS PASSED"} — ${passed} passed`);
 } finally {
   await client.end();

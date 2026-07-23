@@ -31,6 +31,8 @@ export interface TransferInput {
   description?: string;
   /** 'purchase' routes through make_purchase() (triggers round-up + loyalty points). */
   kind?: "transfer" | "purchase";
+  /** Logged-in app_user id — sets created_by on the txn and the RLS/audit GUC. */
+  userId?: number;
 }
 
 export interface PayableTarget {
@@ -81,12 +83,12 @@ export async function makeTransfer(input: TransferInput): Promise<string> {
   return withTransaction(
     async (client) => {
       const { rows } = await client.query(
-        `SELECT ${fn}($1, $2, $3::numeric, $4, $5::uuid, $6) AS txn_id`,
-        [input.from, input.to, input.amount, input.currency, input.idempotencyKey, input.description ?? "web payment"],
+        `SELECT ${fn}($1, $2, $3::numeric, $4, $5::uuid, $6, $7) AS txn_id`,
+        [input.from, input.to, input.amount, input.currency, input.idempotencyKey, input.description ?? "web payment", input.userId ?? null],
       );
       return String(rows[0].txn_id);
     },
-    { isolation: "serializable" },
+    { userId: input.userId, isolation: "serializable" },
   );
 }
 

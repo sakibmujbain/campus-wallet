@@ -228,7 +228,7 @@ Each phase ends with the same discipline we've used all along: **live smoke chec
 
 ## 11. Build status
 
-- **Phase A — Identity & authorization foundation: ✅ DONE & verified live.** Migration `0006` (`role_grant`, `role_request`, `is_admin`/`ensure_admin`/`request_role`/`promote_user`/`demote_user`/`decide_role_request`, audited); `getViewer()`/`requireViewer()`; `getStudent()` refactored onto it; gated `/admin` + `/cr` console shells; dashboard console links; `money()`/`mapPgError()` helpers; `ADMIN_EMAILS` env + first-user admin bootstrap. Smoke = **35 checks** green. Next: **Phase B** — fee catalog → dues → pay + top-up.
+- **Phase A — Identity & authorization foundation: ✅ DONE & verified live.** Migration `0006` (`role_grant`, `role_request`, `is_admin`/`ensure_admin`/`request_role`/`promote_user`/`demote_user`/`decide_role_request`, audited); `getViewer()`/`requireViewer()`; `getStudent()` refactored onto it; gated `/admin` + `/cr` console shells; dashboard console links; `money()`/`mapPgError()` helpers; admin bootstrap via the **`ADMIN_EMAILS` allowlist only** (no first-user magic) + in-app promotion. Smoke = **35 checks** green. Next: **Phase B** — fee catalog → dues → pay + top-up.
 
 ---
 

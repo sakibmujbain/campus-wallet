@@ -39,9 +39,11 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
   const { rows } = await pool.query(`SELECT provision_student($1::uuid, $2, $3) AS id`, [user.id, user.email, fullName]);
   const appUserId = Number(rows[0].id);
 
-  // Admin bootstrap: force if the email is allowlisted; otherwise ensure_admin()
-  // grants admin only when NO admin exists yet (first-run), so a deploy always has one.
-  await pool.query(`SELECT ensure_admin($1, $2)`, [appUserId, adminEmails().includes(user.email.toLowerCase())]);
+  // Admin bootstrap: ONLY emails on the ADMIN_EMAILS allowlist are granted admin.
+  // Everyone else is a student unless an existing admin promotes them in-app.
+  if (adminEmails().includes(user.email.toLowerCase())) {
+    await pool.query(`SELECT ensure_admin($1)`, [appUserId]);
+  }
 
   const { rows: g } = await pool.query(
     `SELECT capability, scope_kind AS "scopeKind", scope_ref AS "scopeRef" FROM role_grant WHERE user_id = $1`,

@@ -271,7 +271,7 @@ try {
   const adminUid = (await client.query(`SELECT provision_student(gen_random_uuid(), $1, 'Admin') AS id`, [`admin-${tag}@x.edu.bd`])).rows[0].id;
   const targetUid = (await client.query(`SELECT provision_student(gen_random_uuid(), $1, 'Target') AS id`, [`target-${tag}@x.edu.bd`])).rows[0].id;
 
-  await client.query(`SELECT ensure_admin($1, true)`, [adminUid]);
+  await client.query(`SELECT ensure_admin($1)`, [adminUid]);
   if ((await client.query(`SELECT is_admin($1) AS a`, [adminUid])).rows[0].a === true) ok("ensure_admin grants admin"); else fail("ensure_admin failed");
 
   await expectError(client.query(`SELECT request_role($1,'admin')`, [targetUid]), "cannot request the admin role", "requesting admin blocked");

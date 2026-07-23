@@ -42,18 +42,15 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
     SELECT EXISTS (SELECT 1 FROM role_grant WHERE user_id = p_user AND capability = 'admin');
 $$;
 
--- Grant admin to p_user if forced (email allowlisted) OR if no admin exists yet
--- (first-run bootstrap, so a fresh deploy always has one admin).
-CREATE FUNCTION ensure_admin(p_user BIGINT, p_force BOOLEAN DEFAULT false) RETURNS BOOLEAN
+-- Grant admin to p_user (idempotent). Called ONLY for emails on the ADMIN_EMAILS
+-- allowlist — the sole bootstrap for the first admin(s). Everyone else is promoted
+-- in-app by an existing admin. (No 'first user auto-admin'.)
+CREATE FUNCTION ensure_admin(p_user BIGINT) RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
-    IF p_force OR NOT EXISTS (SELECT 1 FROM role_grant WHERE capability = 'admin') THEN
-        INSERT INTO role_grant (user_id, capability, scope_kind, granted_by)
-        VALUES (p_user, 'admin', 'all', p_user)
-        ON CONFLICT (user_id, capability, scope_kind, COALESCE(scope_ref, '')) DO NOTHING;
-        RETURN true;
-    END IF;
-    RETURN false;
+    INSERT INTO role_grant (user_id, capability, scope_kind, granted_by)
+    VALUES (p_user, 'admin', 'all', p_user)
+    ON CONFLICT (user_id, capability, scope_kind, COALESCE(scope_ref, '')) DO NOTHING;
 END; $$;
 
 -- Student self-declares a role (never admin). Blocked at the CHECK too.
@@ -115,7 +112,7 @@ CREATE TRIGGER trg_audit_role_request AFTER INSERT OR UPDATE OR DELETE ON role_r
 
 -- Grants (RLS is a design artifact today; row scoping is done in the app layer).
 GRANT SELECT ON role_grant, role_request TO app_read, app_write, app_admin;
-GRANT EXECUTE ON FUNCTION is_admin(BIGINT), ensure_admin(BIGINT, BOOLEAN),
+GRANT EXECUTE ON FUNCTION is_admin(BIGINT), ensure_admin(BIGINT),
                           request_role(BIGINT, TEXT, TEXT, TEXT, TEXT),
                           promote_user(BIGINT, BIGINT, TEXT, TEXT, TEXT),
                           demote_user(BIGINT, BIGINT, TEXT, TEXT, TEXT),
@@ -130,7 +127,7 @@ DROP FUNCTION IF EXISTS decide_role_request(BIGINT, BIGINT, BOOLEAN);
 DROP FUNCTION IF EXISTS demote_user(BIGINT, BIGINT, TEXT, TEXT, TEXT);
 DROP FUNCTION IF EXISTS promote_user(BIGINT, BIGINT, TEXT, TEXT, TEXT);
 DROP FUNCTION IF EXISTS request_role(BIGINT, TEXT, TEXT, TEXT, TEXT);
-DROP FUNCTION IF EXISTS ensure_admin(BIGINT, BOOLEAN);
+DROP FUNCTION IF EXISTS ensure_admin(BIGINT);
 DROP FUNCTION IF EXISTS is_admin(BIGINT);
 DROP TABLE IF EXISTS role_request;
 DROP TABLE IF EXISTS role_grant;

@@ -1,9 +1,11 @@
 import { pool } from "@/db/pool";
+import { requireViewer } from "@/lib/viewer";
 import { money } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminOverview() {
+  await requireViewer("admin"); // re-assert per page (a shared layout guard doesn't re-run on soft nav)
   const { rows } = await pool.query(`
     SELECT (SELECT count(*) FROM app_user)                                        AS users,
            (SELECT count(*) FROM role_request WHERE status='pending')             AS pending_requests,

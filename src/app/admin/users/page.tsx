@@ -1,9 +1,11 @@
 import { listRoleRequests, listUsers } from "@/db/admin";
+import { requireViewer } from "@/lib/viewer";
 import { UsersAdmin } from "./users-admin";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminUsers() {
+  await requireViewer("admin"); // re-assert per page (a shared layout guard doesn't re-run on soft nav)
   const [users, requests] = await Promise.all([listUsers(), listRoleRequests()]);
   return (
     <main>

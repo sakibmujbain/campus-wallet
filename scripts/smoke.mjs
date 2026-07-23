@@ -415,6 +415,29 @@ try {
   await expectError(client.query(`SELECT refund_event($1,$2,50.00,gen_random_uuid())`, [drive, bob.spend]),
     "refunds are closed", "refund on a settled drive blocked (clear message, not overdraft)");
 
+  // ── Admin control-plane ops: KYC approval + payee provisioning (Phase E) ──
+  const dave = await mkStudent("Dave", 4);
+  const daveKyc = (await client.query(`SELECT submit_kyc($1,'edu_email') AS id`, [dave.uid])).rows[0].id;
+  await expectError(client.query(`SELECT admin_approve_kyc($1,$2)`, [targetUid, daveKyc]),
+    "42501", "non-admin KYC approve blocked");
+  await client.query(`SELECT admin_approve_kyc($1,$2)`, [adminUid, daveKyc]);
+  if ((await client.query(`SELECT status FROM kyc_verification WHERE verification_id=$1`, [daveKyc])).rows[0].status === "verified")
+    ok("admin_approve_kyc verifies a pending e-KYC"); else fail("admin_approve_kyc did not verify");
+  await expectError(client.query(`SELECT admin_approve_kyc($1,$2)`, [adminUid, 2000000000]),
+    "no pending or expired", "approving a nonexistent verification errors");
+
+  await expectError(client.query(`SELECT admin_open_payee($1,'exam','X')`, [targetUid]),
+    "42501", "non-admin payee create blocked");
+  const payee = (await client.query(`SELECT admin_open_payee($1,'exam',$2) AS id`, [adminUid, `SmokeDept-${tag}`])).rows[0].id;
+  if ((await client.query(`SELECT count(*)::int c FROM v_payable_targets WHERE account_id=$1`, [payee])).rows[0].c === 1)
+    ok("admin_open_payee provisions an institutional payee"); else fail("payee missing from v_payable_targets");
+  await expectError(client.query(`SELECT admin_open_payee($1,'exam',$2)`, [adminUid, `SmokeDept-${tag}`]),
+    "already exists", "duplicate payee (same department) rejected");
+  await expectError(client.query(`SELECT admin_open_payee($1,'bogus','x')`, [adminUid]),
+    "unknown payee kind", "unknown payee kind rejected");
+  await expectError(client.query(`SELECT admin_open_payee($1,'hall','notanid')`, [adminUid]),
+    "hall reference must be", "hall payee with a non-numeric ref rejected");
+
   console.log(`\n${process.exitCode ? "SOME CHECKS FAILED" : "ALL CHECKS PASSED"} — ${passed} passed`);
 } finally {
   await client.end();

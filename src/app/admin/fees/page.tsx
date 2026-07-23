@@ -1,9 +1,11 @@
 import { listFeeItems, listPayees } from "@/db/fees";
+import { requireViewer } from "@/lib/viewer";
 import { FeeAdmin } from "./fee-admin";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminFees() {
+  await requireViewer("admin"); // re-assert per page (a shared layout guard doesn't re-run on soft nav)
   const [fees, payees] = await Promise.all([listFeeItems(), listPayees()]);
   return (
     <main>

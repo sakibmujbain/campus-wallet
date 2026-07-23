@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getViewer } from "@/lib/viewer";
+import { requireViewer } from "@/lib/viewer";
 import { listMyDrives } from "@/db/organizer";
 import { money } from "@/lib/format";
 
@@ -10,8 +10,8 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 export default async function OrganizerHome() {
-  const v = await getViewer();
-  const drives = await listMyDrives(v!.appUserId, v!.isAdmin);
+  const v = await requireViewer("cr"); // re-assert per page (a shared layout guard doesn't re-run on soft nav)
+  const drives = await listMyDrives(v.appUserId, v.isAdmin);
 
   return (
     <main>

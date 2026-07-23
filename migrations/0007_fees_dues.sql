@@ -39,7 +39,7 @@ CREATE INDEX ix_assessment_student_open ON student_assessment (student_id) WHERE
 
 CREATE TABLE assessment_payment (
     assessment_id BIGINT PRIMARY KEY REFERENCES student_assessment(assessment_id),
-    txn_id        BIGINT NOT NULL REFERENCES ledger_transaction(txn_id),
+    txn_id        BIGINT NOT NULL UNIQUE REFERENCES ledger_transaction(txn_id),  -- one txn backs exactly one assessment
     paid_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -53,6 +53,9 @@ RETURNS BIGINT LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE v_id BIGINT;
 BEGIN
     IF NOT is_admin(p_actor) THEN RAISE EXCEPTION 'only an admin can create fees' USING ERRCODE = 'insufficient_privilege'; END IF;
+    IF (SELECT currency FROM account WHERE account_id = p_collector) IS DISTINCT FROM 'BDT' THEN
+        RAISE EXCEPTION 'fee collector must be a BDT wallet (no FX yet)' USING ERRCODE = 'check_violation';
+    END IF;
     INSERT INTO fee_item (name, category, collector_account_id, amount, scope_kind, scope_ref, created_by)
         VALUES (p_name, p_category, p_collector, p_amount, COALESCE(p_scope_kind, 'all'), p_scope_ref, p_actor)
         RETURNING fee_item_id INTO v_id;
@@ -109,7 +112,7 @@ END; $$;
 -- Exact amount (the snapshot), no points, idempotent.
 CREATE FUNCTION pay_fee(p_assessment BIGINT, p_idem UUID)
 RETURNS BIGINT LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE v_me BIGINT; v_student BIGINT; v_amount NUMERIC(20,4); v_status TEXT; v_collector BIGINT; v_spend BIGINT; v_ccy CHAR(3); v_txn BIGINT;
+DECLARE v_me BIGINT; v_student BIGINT; v_amount NUMERIC(20,4); v_status TEXT; v_collector BIGINT; v_spend BIGINT; v_ccy CHAR(3); v_txn BIGINT; v_paid BIGINT;
 BEGIN
     v_me := app_current_user();
     IF v_me IS NULL THEN RAISE EXCEPTION 'not authenticated' USING ERRCODE = 'insufficient_privilege'; END IF;
@@ -121,32 +124,56 @@ BEGIN
      FOR UPDATE OF sa;
     IF v_student IS NULL THEN RAISE EXCEPTION 'no such assessment %', p_assessment; END IF;
     IF v_student <> v_me THEN RAISE EXCEPTION 'that fee is not assessed to you' USING ERRCODE = 'insufficient_privilege'; END IF;
+
+    -- True replay: this assessment is already paid → return its original txn (idempotent success).
+    SELECT txn_id INTO v_paid FROM assessment_payment WHERE assessment_id = p_assessment;
+    IF v_paid IS NOT NULL THEN RETURN v_paid; END IF;
     IF v_status <> 'open' THEN RAISE EXCEPTION 'fee already %', v_status USING ERRCODE = 'check_violation'; END IF;
 
     SELECT account_id INTO v_spend FROM student_wallet WHERE student_id = v_me AND wallet_purpose = 'spending';
     SELECT currency INTO v_ccy FROM account WHERE account_id = v_collector;
 
     v_txn := make_transfer(v_spend, v_collector, v_amount, v_ccy, p_idem, 'fee payment');  -- make_transfer, not make_purchase → no points
-    IF NOT EXISTS (SELECT 1 FROM ledger_entry WHERE txn_id = v_txn AND account_id = v_collector AND amount > 0) THEN
-        RAISE EXCEPTION 'idempotency key % is not a payment to this fee', p_idem USING ERRCODE = 'check_violation';
+    -- The key must map to a FRESH payment of THIS exact fee, not a replay of an
+    -- unrelated (same-collector) txn — else this due would settle for free.
+    IF EXISTS (SELECT 1 FROM assessment_payment WHERE txn_id = v_txn) THEN
+        RAISE EXCEPTION 'idempotency key % already settled another fee', p_idem USING ERRCODE = 'check_violation';
     END IF;
-    INSERT INTO assessment_payment (assessment_id, txn_id) VALUES (p_assessment, v_txn) ON CONFLICT (assessment_id) DO NOTHING;
-    UPDATE student_assessment SET status = 'paid' WHERE assessment_id = p_assessment AND status = 'open';
+    IF NOT EXISTS (SELECT 1 FROM ledger_entry WHERE txn_id = v_txn AND account_id = v_collector AND amount = v_amount) THEN
+        RAISE EXCEPTION 'idempotency key % is not a payment of this fee', p_idem USING ERRCODE = 'check_violation';
+    END IF;
+    INSERT INTO assessment_payment (assessment_id, txn_id) VALUES (p_assessment, v_txn);  -- UNIQUE(txn_id) backstop
+    UPDATE student_assessment SET status = 'paid' WHERE assessment_id = p_assessment;
     RETURN v_txn;
 END; $$;
 
 -- ── Self-service demo top-up (external cash-in rail) ───────────────────────
 CREATE FUNCTION top_up(p_amount NUMERIC, p_idem UUID)
 RETURNS BIGINT LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE v_me BIGINT; v_ext BIGINT; v_spend BIGINT;
+DECLARE v_me BIGINT; v_ext BIGINT; v_spend BIGINT; v_today NUMERIC; v_txn BIGINT;
 BEGIN
     v_me := app_current_user();
     IF v_me IS NULL THEN RAISE EXCEPTION 'not authenticated' USING ERRCODE = 'insufficient_privilege'; END IF;
     IF p_amount <= 0 OR p_amount > 100000 THEN RAISE EXCEPTION 'top-up must be between 0 and 100,000 BDT' USING ERRCODE = 'check_violation'; END IF;
+
+    SELECT account_id INTO v_spend FROM student_wallet WHERE student_id = v_me AND wallet_purpose = 'spending';
+    -- Demo rail: cap cumulative top-ups per student per day (contains the free-money faucet).
+    SELECT COALESCE(SUM(le.amount), 0) INTO v_today
+      FROM ledger_entry le JOIN ledger_transaction lt ON lt.txn_id = le.txn_id
+     WHERE le.account_id = v_spend AND le.amount > 0 AND lt.kind = 'transfer'
+       AND lt.description = 'top-up (demo)' AND lt.created_at >= date_trunc('day', now());
+    IF v_today + p_amount > 200000 THEN
+        RAISE EXCEPTION 'daily top-up limit (200,000 BDT) reached' USING ERRCODE = 'check_violation';
+    END IF;
+
     SELECT account_id INTO v_ext FROM system_account WHERE system_role = 'external' LIMIT 1;
     IF v_ext IS NULL THEN RAISE EXCEPTION 'no external cash-in account configured'; END IF;
-    SELECT account_id INTO v_spend FROM student_wallet WHERE student_id = v_me AND wallet_purpose = 'spending';
-    RETURN make_transfer(v_ext, v_spend, p_amount, 'BDT', p_idem, 'top-up (demo)');
+
+    v_txn := make_transfer(v_ext, v_spend, p_amount, 'BDT', p_idem, 'top-up (demo)');
+    IF NOT EXISTS (SELECT 1 FROM ledger_entry WHERE txn_id = v_txn AND account_id = v_spend AND amount = p_amount) THEN
+        RAISE EXCEPTION 'idempotency key % already used for a different operation', p_idem USING ERRCODE = 'check_violation';
+    END IF;
+    RETURN v_txn;
 END; $$;
 
 -- ── Student dues view (app filters by student_id — RLS-MVP posture) ─────────

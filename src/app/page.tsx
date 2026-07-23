@@ -2,13 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getStudent } from "@/lib/session";
 import { getViewer } from "@/lib/viewer";
+import { money } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
-
-function money(v: string): string {
-  const [whole, frac = ""] = v.split(".");
-  return `৳${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}.${(frac + "00").slice(0, 2)}`;
-}
 
 export default async function Dashboard() {
   const student = await getStudent();

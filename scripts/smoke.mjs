@@ -317,6 +317,29 @@ try {
   const cAfter = await bal(carol.spend);
   if (Math.round((Number(cAfter) - Number(cBefore)) * 100) === 50000) ok("top_up credits the spending wallet (+500)"); else fail(`top_up wrong: ${cBefore} -> ${cAfter}`);
 
+  // Idempotency hardening: a key that paid one due CANNOT settle another same-collector due for free.
+  await client.query(`SELECT assess_fees($1,$2,$3)`, [adminUid, feeId, `SmokeP2-${tag}`]); // 2nd period, same collector, all students
+  const c1 = (await client.query(`SELECT assessment_id::int AS id FROM student_assessment WHERE fee_item_id=$1 AND student_id=$2 AND period=$3`, [feeId, carol.uid, `SmokePeriod-${tag}`])).rows[0].id;
+  const c2 = (await client.query(`SELECT assessment_id::int AS id FROM student_assessment WHERE fee_item_id=$1 AND student_id=$2 AND period=$3`, [feeId, carol.uid, `SmokeP2-${tag}`])).rows[0].id;
+  const reuseKey = (await client.query(`SELECT gen_random_uuid() AS k`)).rows[0].k;
+  await client.query("BEGIN");
+  await client.query(`SELECT set_config('app.current_user_id',$1,true)`, [String(carol.uid)]);
+  const c1txn = (await client.query(`SELECT pay_fee($1,$2::uuid) AS t`, [c1, reuseKey])).rows[0].t;
+  await client.query("COMMIT");
+  await expectError((async () => {
+    await client.query("BEGIN");
+    await client.query(`SELECT set_config('app.current_user_id',$1,true)`, [String(carol.uid)]);
+    await client.query(`SELECT pay_fee($1,$2::uuid)`, [c2, reuseKey]);
+    await client.query("COMMIT");
+  })(), "already settled another fee", "reused idem key can't clear a second due");
+  await client.query("ROLLBACK").catch(() => {});
+
+  await client.query("BEGIN");
+  await client.query(`SELECT set_config('app.current_user_id',$1,true)`, [String(carol.uid)]);
+  const c1txn2 = (await client.query(`SELECT pay_fee($1,$2::uuid) AS t`, [c1, reuseKey])).rows[0].t;
+  await client.query("COMMIT");
+  if (c1txn === c1txn2) ok("paying an already-paid fee replays idempotently (same txn)"); else fail(`retry not idempotent: ${c1txn} vs ${c1txn2}`);
+
   console.log(`\n${process.exitCode ? "SOME CHECKS FAILED" : "ALL CHECKS PASSED"} — ${passed} passed`);
 } finally {
   await client.end();

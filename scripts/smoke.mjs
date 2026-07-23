@@ -40,6 +40,7 @@ try {
   const hallId = (await client.query(`INSERT INTO hall(name) VALUES ($1) RETURNING hall_id`, [`SmokeHall-${tag}`])).rows[0].hall_id;
   const treasury = (await client.query(`SELECT open_system_account('treasury','BDT',-1000000000000000) AS id`)).rows[0].id;
   await client.query(`SELECT open_system_account('loyalty_pool','BDT',-1000000000000000)`); // funds redemptions
+  await client.query(`SELECT open_system_account('external','BDT',-1000000000000000)`);      // top_up() cash-in rail
   const cafeTill = (await client.query(`SELECT open_cafeteria_wallet($1,null) AS id`, [`SmokeCafe-${tag}`])).rows[0].id;
 
   async function mkStudent(name, ix) {

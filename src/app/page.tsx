@@ -38,6 +38,12 @@ export default async function Dashboard() {
         {student.studentNo} · {student.email} — verified via your <code>.edu.bd</code> email.
       </p>
 
+      {student.duesCount > 0 && (
+        <Link href="/dues" className="dues-nudge">
+          💳 You owe <strong>{money(student.duesTotal)}</strong> in {student.duesCount} due{student.duesCount > 1 ? "s" : ""} — pay now →
+        </Link>
+      )}
+
       <div className="tiles">
         <div className="tile">
           <span className="tile-label">Spending wallet</span>
@@ -55,6 +61,16 @@ export default async function Dashboard() {
 
       <h2 style={{ fontSize: "1rem", margin: "2rem 0 1rem" }}>What you can do</h2>
       <div className="features">
+        <Link href="/dues" className="feature">
+          <span className="feature-icon">💳</span>
+          <span className="feature-title">Pay dues</span>
+          <span className="feature-desc">Exam, hall, and other fees assessed to you — pay the exact amount.</span>
+        </Link>
+        <Link href="/top-up" className="feature">
+          <span className="feature-icon">➕</span>
+          <span className="feature-title">Top up</span>
+          <span className="feature-desc">Add balance to your spending wallet (instant demo cash-in).</span>
+        </Link>
         <Link href="/hub" className="feature">
           <span className="feature-icon">🏛</span>
           <span className="feature-title">Campus Payment Hub</span>

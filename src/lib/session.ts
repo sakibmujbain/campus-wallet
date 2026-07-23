@@ -11,6 +11,8 @@ export interface Student {
   spending: string;
   savings: string;
   points: string;
+  duesCount: number;
+  duesTotal: string;
 }
 
 // Resolves the authenticated Supabase user, idempotently provisions their
@@ -28,7 +30,9 @@ export const getStudent = cache(async (): Promise<Student | null> => {
                        WHERE sw.student_id = $1 AND sw.wallet_purpose = 'spending'), 0)::text AS spending,
             COALESCE((SELECT b.balance FROM student_wallet sw JOIN account_balance b ON b.account_id = sw.account_id
                        WHERE sw.student_id = $1 AND sw.wallet_purpose = 'savings'), 0)::text AS savings,
-            COALESCE((SELECT points FROM v_point_balance WHERE student_id = $1), 0)::text AS points
+            COALESCE((SELECT points FROM v_point_balance WHERE student_id = $1), 0)::text AS points,
+            COALESCE((SELECT count(*) FROM v_student_dues WHERE student_id = $1 AND status='open'), 0)::int AS dues_count,
+            COALESCE((SELECT SUM(amount_due) FROM v_student_dues WHERE student_id = $1 AND status='open'), 0)::text AS dues_total
        FROM app_user au
        JOIN student st ON st.student_id = au.user_id
       WHERE au.user_id = $1`,
@@ -45,6 +49,8 @@ export const getStudent = cache(async (): Promise<Student | null> => {
     spending: r.spending,
     savings: r.savings,
     points: r.points,
+    duesCount: r.dues_count,
+    duesTotal: r.dues_total,
   };
 });
 

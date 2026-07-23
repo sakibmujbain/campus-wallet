@@ -18,6 +18,8 @@ DECLARE
     v_clubA    BIGINT;
     v_clubB    BIGINT;
     v_event    BIGINT;
+    v_examfee  BIGINT;
+    v_hallfee  BIGINT;
     v_lock     DATE := current_date + INTERVAL '120 days';   -- Tuition Shield until end of term
     s          RECORD;
 BEGIN
@@ -31,6 +33,7 @@ BEGIN
 
     v_treasury := open_system_account('treasury',     'BDT', -1000000000000000);
     v_pool     := open_system_account('loyalty_pool', 'BDT', -1000000000000000);  -- funds redemptions
+    PERFORM open_system_account('external', 'BDT', -1000000000000000);            -- top-up cash-in rail
     v_exam     := open_exam_wallet('CSE');
     v_cafe     := open_cafeteria_wallet('Central Cafeteria', 'IOT-CAF-01');
     v_halladm  := open_hall_wallet(v_hall1);
@@ -62,6 +65,17 @@ BEGIN
         v_kyc := submit_kyc(v_uid, 'edu_email');
         PERFORM approve_kyc(v_kyc);
     END LOOP;
+
+    -- Fee catalog + demo dues, assessed to every seeded student. Total 2,300 BDT
+    -- exceeds the 1,000 welcome credit, so the demo exercises the top-up flow.
+    INSERT INTO fee_item (name, category, collector_account_id, amount, scope_kind)
+        VALUES ('Semester Exam Fee', 'exam', v_exam, 1500.00, 'all') RETURNING fee_item_id INTO v_examfee;
+    INSERT INTO fee_item (name, category, collector_account_id, amount, scope_kind)
+        VALUES ('Hall Seat Rent', 'hall_rent', v_halladm, 800.00, 'all') RETURNING fee_item_id INTO v_hallfee;
+    INSERT INTO student_assessment (student_id, fee_item_id, period, amount_due)
+        SELECT student_id, v_examfee, 'Spring-2026', 1500.00 FROM student;
+    INSERT INTO student_assessment (student_id, fee_item_id, period, amount_due)
+        SELECT student_id, v_hallfee, 'Spring-2026', 800.00 FROM student;
 
     -- Demo purchase with a non-round amount so round-up + loyalty are visible:
     -- Ayesha pays a 497 BDT exam fee -> 3 BDT swept to savings, floor(497*0.1)=49 points.

@@ -104,6 +104,12 @@ a.feature:hover { transform: translateY(-2px); border-color: var(--accent); }
 .feature-title { font-weight: 620; font-size: 0.98rem; }
 .feature-desc { font-size: 0.85rem; color: var(--muted); }
 
+.dues-nudge { display: block; background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); color: var(--ink);
+  border-radius: var(--radius); padding: 0.8rem 1rem; margin: 1.4rem 0 0; text-decoration: none; font-size: 0.92rem; }
+.dues-nudge:hover { border-color: var(--accent); }
+.dues-nudge strong { color: var(--accent); }
+
 /* ── role consoles ── */
 .console-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
   padding: 0.7rem 1.25rem; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }

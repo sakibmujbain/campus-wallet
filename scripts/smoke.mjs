@@ -284,6 +284,39 @@ try {
   await client.query(`SELECT decide_role_request($1,$2,true)`, [adminUid, reqId]);
   if ((await client.query(`SELECT count(*)::int c FROM role_grant WHERE user_id=$1 AND capability='club_exec'`, [targetUid])).rows[0].c === 1) ok("approve role request grants the capability"); else fail("decide_role_request failed");
 
+  // ── Fees, dues, top-up (Phase B) ──
+  const feeId = (await client.query(`SELECT create_fee_item($1,'Smoke Fee','misc',$2,250.00,'all',NULL) AS id`, [adminUid, cafeTill])).rows[0].id;
+  const assessed = (await client.query(`SELECT assess_fees($1,$2,$3) AS n`, [adminUid, feeId, `SmokePeriod-${tag}`])).rows[0].n;
+  if (assessed >= 1) ok(`assess_fees snapshots dues to ${assessed} student(s)`); else fail("assess_fees created none");
+
+  await expectError(client.query(`SELECT create_fee_item($1,'X','misc',$2,10.00,'all',NULL)`, [targetUid, cafeTill]), "only an admin", "non-admin fee create blocked");
+
+  const aAssess = (await client.query(`SELECT assessment_id::int AS id FROM student_assessment WHERE fee_item_id=$1 AND student_id=$2`, [feeId, alice.uid])).rows[0].id;
+  await client.query("BEGIN");
+  await client.query(`SELECT set_config('app.current_user_id',$1,true)`, [String(alice.uid)]);
+  const payTxn = (await client.query(`SELECT pay_fee($1, gen_random_uuid()) AS txn`, [aAssess])).rows[0].txn;
+  await client.query("COMMIT");
+  if ((await client.query(`SELECT status FROM student_assessment WHERE assessment_id=$1`, [aAssess])).rows[0].status === "paid") ok("pay_fee settles the assessment at the exact amount");
+  else fail("pay_fee did not mark paid");
+  if ((await client.query(`SELECT count(*)::int c FROM point_ledger WHERE source_txn_id=$1`, [payTxn])).rows[0].c === 0) ok("mandatory fee earns NO loyalty points"); else fail("fee minted points");
+
+  const bAssess = (await client.query(`SELECT assessment_id::int AS id FROM student_assessment WHERE fee_item_id=$1 AND student_id=$2`, [feeId, bob.uid])).rows[0].id;
+  await expectError((async () => {
+    await client.query("BEGIN");
+    await client.query(`SELECT set_config('app.current_user_id',$1,true)`, [String(alice.uid)]);
+    await client.query(`SELECT pay_fee($1, gen_random_uuid())`, [bAssess]);
+    await client.query("COMMIT");
+  })(), "not assessed to you", "paying someone else's fee blocked");
+  await client.query("ROLLBACK").catch(() => {});
+
+  const cBefore = await bal(carol.spend);
+  await client.query("BEGIN");
+  await client.query(`SELECT set_config('app.current_user_id',$1,true)`, [String(carol.uid)]);
+  await client.query(`SELECT top_up(500.00, gen_random_uuid())`);
+  await client.query("COMMIT");
+  const cAfter = await bal(carol.spend);
+  if (Math.round((Number(cAfter) - Number(cBefore)) * 100) === 50000) ok("top_up credits the spending wallet (+500)"); else fail(`top_up wrong: ${cBefore} -> ${cAfter}`);
+
   console.log(`\n${process.exitCode ? "SOME CHECKS FAILED" : "ALL CHECKS PASSED"} — ${passed} passed`);
 } finally {
   await client.end();

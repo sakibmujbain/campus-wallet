@@ -67,7 +67,7 @@ export default async function Events() {
                   </thead>
                   <tbody>
                     {eventDefaulters.map((d) => (
-                      <tr key={`${d.eventId}-${d.studentName}`}>
+                      <tr key={`${d.eventId}-${d.studentId}`}>
                         <td>{d.studentName}</td>
                         <td className="num">{money(d.paid)}</td>
                         <td className="num">{money(d.expected)}</td>

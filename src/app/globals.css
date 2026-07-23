@@ -85,6 +85,15 @@ code { font-family: var(--mono); font-size: 0.85em; background: var(--surface-2)
 .badge-warn { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); text-transform: capitalize; }
 .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); padding: 0.4rem 0.8rem; font-size: 0.85rem; }
 .btn-ghost:hover { filter: none; border-color: var(--accent); color: var(--accent); }
+/* accent button rendered as a link (button styles don't apply to <a>) */
+.btn-primary { display: inline-block; background: var(--accent); color: #fff; border: 1px solid var(--accent);
+  padding: 0.5rem 0.95rem; font-size: 0.85rem; font-weight: 600; border-radius: 8px; text-decoration: none; cursor: pointer; }
+.btn-primary:hover { filter: brightness(1.05); }
+/* a whole card that is a clickable link */
+a.card-link { display: block; text-decoration: none; color: inherit; transition: transform 0.15s ease, border-color 0.15s ease; }
+a.card-link:hover { transform: translateY(-2px); border-color: var(--accent); }
+/* wide tables scroll inside their own box instead of stretching the page */
+.scroll-x { overflow-x: auto; }
 
 .tabs { display: flex; gap: 0.4rem; margin-bottom: 1.1rem; }
 .tab { flex: 1; background: var(--bg); color: var(--muted); border: 1px solid var(--border); font-weight: 500; padding: 0.5rem; }

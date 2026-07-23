@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getStudent } from "@/lib/session";
 import { getViewer } from "@/lib/viewer";
+import { unreadCount } from "@/db/notifications";
 import { money } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +11,7 @@ export default async function Dashboard() {
   const student = await getStudent();
   if (!student) redirect("/login");
   const viewer = await getViewer();
+  const unread = viewer ? await unreadCount(viewer.appUserId) : 0;
 
   const verified = student.kycStatus === "verified";
 
@@ -24,6 +26,10 @@ export default async function Dashboard() {
           <span className={`badge ${verified ? "badge-ok" : "badge-warn"}`}>
             {verified ? "✓ e-KYC verified" : student.kycStatus}
           </span>
+          <Link href="/notifications" className="btn-ghost" aria-label="Notifications" title="Notifications">
+            🔔{unread > 0 && <span style={{ marginLeft: "0.25rem", color: "var(--accent)", fontWeight: 700 }}>{unread}</span>}
+          </Link>
+          <Link href="/profile" className="btn-ghost">Profile</Link>
           <form action="/auth/signout" method="post">
             <button type="submit" className="btn-ghost">Sign out</button>
           </form>

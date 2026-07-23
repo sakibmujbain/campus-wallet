@@ -9,6 +9,7 @@ export default async function OrganizerLayout({ children }: { children: React.Re
         <span className="console-title">📣 Organizer console</span>
         <nav className="console-nav">
           <Link href="/cr">My drives</Link>
+          <Link href="/cr/new">+ New drive</Link>
           <Link href="/">← App</Link>
         </nav>
       </div>

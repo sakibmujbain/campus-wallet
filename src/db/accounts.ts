@@ -118,6 +118,7 @@ export async function listEventProgress(): Promise<EventProgress[]> {
 
 export interface Defaulter {
   eventId: number;
+  studentId: number;
   studentName: string;
   expected: string;
   paid: string;
@@ -127,8 +128,9 @@ export interface Defaulter {
 /** The live defaulter list across events (roster EXCEPT fully-paid). */
 export async function listDefaulters(): Promise<Defaulter[]> {
   const { rows } = await pool.query(
-    `SELECT event_id::int AS "eventId",
-            full_name     AS "studentName",
+    `SELECT event_id::int   AS "eventId",
+            student_id::int  AS "studentId",
+            full_name        AS "studentName",
             expected_amount::text AS expected,
             paid::text, outstanding::text
        FROM v_event_defaulters

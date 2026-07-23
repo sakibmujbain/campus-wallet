@@ -32,6 +32,7 @@ async function expectError(promise, want, label) {
 await client.connect();
 try {
   const tag = String(Date.now()); // unique suffix so re-runs don't collide
+  const smokeBatch = `B${tag}`;   // per-run batch so the Phase-D cohort is exactly our 3 students
   const bal = async (id) =>
     (await client.query(`SELECT COALESCE(balance,0)::text AS b FROM account_balance WHERE account_id=$1`, [id])).rows[0]?.b;
 
@@ -47,8 +48,8 @@ try {
       [`${name.toLowerCase()}-${tag}@smoke.edu.bd`, name],
     )).rows[0].user_id;
     await client.query(
-      `INSERT INTO student(student_id, student_no, enrollment_date, hall_id, batch) VALUES ($1,$2,(current_date - INTERVAL '1 year'),$3,'2024')`,
-      [uid, `SM-${tag}-${ix}`, hallId],
+      `INSERT INTO student(student_id, student_no, enrollment_date, hall_id, batch) VALUES ($1,$2,(current_date - INTERVAL '1 year'),$3,$4)`,
+      [uid, `SM-${tag}-${ix}`, hallId, smokeBatch],
     );
     const spend = (await client.query(`SELECT open_student_wallet($1,'spending') AS id`, [uid])).rows[0].id;
     return { uid, spend };
@@ -284,6 +285,13 @@ try {
   await client.query(`SELECT decide_role_request($1,$2,true)`, [adminUid, reqId]);
   if ((await client.query(`SELECT count(*)::int c FROM role_grant WHERE user_id=$1 AND capability='club_exec'`, [targetUid])).rows[0].c === 1) ok("approve role request grants the capability"); else fail("decide_role_request failed");
 
+  // Department assignment (Phase C): admin sets it; non-admin is blocked; blank clears it.
+  await client.query(`SELECT set_student_department($1,$2,'CSE')`, [adminUid, targetUid]);
+  if ((await client.query(`SELECT department FROM student WHERE student_id=$1`, [targetUid])).rows[0].department === "CSE") ok("admin sets student department"); else fail("set_student_department did not set");
+  await expectError(client.query(`SELECT set_student_department($1,$2,'EEE')`, [targetUid, adminUid]), "only an admin", "non-admin department set blocked (42501)");
+  await client.query(`SELECT set_student_department($1,$2,'   ')`, [adminUid, targetUid]);
+  if ((await client.query(`SELECT department FROM student WHERE student_id=$1`, [targetUid])).rows[0].department === null) ok("blank department normalizes to NULL"); else fail("blank department not cleared");
+
   // ── Fees, dues, top-up (Phase B) ──
   const feeId = (await client.query(`SELECT create_fee_item($1,'Smoke Fee','misc',$2,250.00,'all',NULL) AS id`, [adminUid, cafeTill])).rows[0].id;
   const assessed = (await client.query(`SELECT assess_fees($1,$2,$3) AS n`, [adminUid, feeId, `SmokePeriod-${tag}`])).rows[0].n;
@@ -339,6 +347,73 @@ try {
   const c1txn2 = (await client.query(`SELECT pay_fee($1,$2::uuid) AS t`, [c1, reuseKey])).rows[0].t;
   await client.query("COMMIT");
   if (c1txn === c1txn2) ok("paying an already-paid fee replays idempotently (same txn)"); else fail(`retry not idempotent: ${c1txn} vs ${c1txn2}`);
+
+  // ── Organizer console: scoped drives, lifecycle, reminders, settle (Phase D) ──
+  // Grant the target a CR scope over the smoke students' batch ('2024'), then prove
+  // scope-enforced creation, roster auto-populate, and the settlement guardrails.
+  await client.query(`SELECT promote_user($1,$2,'cr','batch',$3)`, [adminUid, targetUid, smokeBatch]);
+
+  await expectError(client.query(`SELECT create_drive($1,'Rogue Drive','batch',$2,300)`, [bob.uid, smokeBatch]),
+    "42501", "create_drive blocked for a non-covering actor");
+
+  const drive = (await client.query(`SELECT create_drive($1,'Smoke Batch Trip','batch',$2,300) AS id`, [targetUid, smokeBatch])).rows[0].id;
+  const rosterN = (await client.query(`SELECT count(*)::int AS n FROM event_roster WHERE event_id=$1`, [drive])).rows[0].n;
+  if (rosterN === 3) ok("create_drive auto-populates the batch cohort onto the roster (3)"); else fail(`roster wrong: ${rosterN}`);
+
+  // Roster edit: remove then re-add a non-contributor.
+  await client.query(`SELECT remove_from_roster($1,$2,$3)`, [targetUid, drive, carol.uid]);
+  await client.query(`SELECT add_to_roster($1,$2,$3,300)`, [targetUid, drive, carol.uid]);
+  if ((await client.query(`SELECT count(*)::int AS n FROM event_roster WHERE event_id=$1`, [drive])).rows[0].n === 3) ok("roster remove + re-add round-trips"); else fail("roster edit wrong");
+
+  // Payments: Alice full (300), Bob partial (100) -> Bob + Carol are defaulters.
+  // (Top Bob up first — his smoke wallet is nearly drained by the earlier tests.)
+  const dwallet = (await client.query(`SELECT account_id::int AS id FROM event_wallet WHERE event_id=$1`, [drive])).rows[0].id;
+  await client.query(`SELECT make_transfer($1,$2,500.00,'BDT',gen_random_uuid(),'drive funding')`, [treasury, bob.spend]);
+  await client.query(`SELECT pay_event($1,$2,300.00,gen_random_uuid())`, [alice.spend, drive]);
+  await client.query(`SELECT pay_event($1,$2,100.00,gen_random_uuid())`, [bob.spend, drive]);
+
+  await expectError(client.query(`SELECT remove_from_roster($1,$2,$3)`, [targetUid, drive, alice.uid]),
+    "with contributions", "cannot remove a student who has paid");
+
+  // Closed drives reject new payments.
+  await client.query(`SELECT set_drive_status($1,$2,'closed')`, [targetUid, drive]);
+  await expectError(client.query(`SELECT pay_event($1,$2,300.00,gen_random_uuid())`, [carol.spend, drive]),
+    "not open for payment", "payment into a closed drive blocked");
+  await client.query(`SELECT set_drive_status($1,$2,'open')`, [targetUid, drive]);
+
+  // Reminders land as notifications for defaulters only (Bob + Carol, never Alice).
+  const reminded = (await client.query(`SELECT remind_defaulters($1,$2) AS n`, [targetUid, drive])).rows[0].n;
+  const noteRows = (await client.query(
+    `SELECT count(*) FILTER (WHERE user_id=$1)::int AS bob,
+            count(*) FILTER (WHERE user_id=$2)::int AS carol,
+            count(*) FILTER (WHERE user_id=$3)::int AS alice
+       FROM notification WHERE kind='event_reminder'`, [bob.uid, carol.uid, alice.uid])).rows[0];
+  if (reminded === 2 && noteRows.bob === 1 && noteRows.carol === 1 && noteRows.alice === 0)
+    ok("remind_defaulters notifies only the unpaid (Bob + Carol)"); else fail(`remind wrong: ${reminded} ${JSON.stringify(noteRows)}`);
+
+  const remind2 = (await client.query(`SELECT remind_defaulters($1,$2) AS n`, [targetUid, drive])).rows[0].n;
+  if (remind2 === 0) ok("remind_defaulters is idempotent while reminders stay unread (0 new)"); else fail(`second remind not idempotent: ${remind2}`);
+
+  // Settlement destination MUST be institutional — never a personal wallet.
+  await expectError(client.query(`SELECT settle_event($1,$2,$3,gen_random_uuid())`, [targetUid, drive, alice.spend]),
+    "must be an institutional wallet", "settle to a student wallet blocked");
+
+  const cafeBefore = await bal(cafeTill);
+  const settleTxn = (await client.query(`SELECT settle_event($1,$2,$3,gen_random_uuid()) AS t`, [targetUid, drive, cafeTill])).rows[0].t;
+  const cafeAfter = await bal(cafeTill);
+  const drivBal = await bal(dwallet);
+  const dStatus = (await client.query(`SELECT status FROM event WHERE event_id=$1`, [drive])).rows[0].status;
+  if (dStatus === "settled" && drivBal === "0.0000" && Math.round((Number(cafeAfter) - Number(cafeBefore)) * 100) === 40000)
+    ok("settle_event sweeps the pool to an institutional treasury (+400) and marks settled");
+  else fail(`settle wrong: status=${dStatus} pool=${drivBal} cafeΔ=${Number(cafeAfter) - Number(cafeBefore)}`);
+
+  const reSettle = (await client.query(`SELECT settle_event($1,$2,$3,gen_random_uuid()) AS t`, [targetUid, drive, cafeTill])).rows[0].t;
+  if (String(reSettle) === String(settleTxn)) ok("re-settling a settled drive is idempotent (same txn)"); else fail(`re-settle not idempotent: ${settleTxn} vs ${reSettle}`);
+
+  await expectError(client.query(`SELECT pay_event($1,$2,300.00,gen_random_uuid())`, [carol.spend, drive]),
+    "not open for payment", "payment into a settled drive blocked");
+  await expectError(client.query(`SELECT refund_event($1,$2,50.00,gen_random_uuid())`, [drive, bob.spend]),
+    "refunds are closed", "refund on a settled drive blocked (clear message, not overdraft)");
 
   console.log(`\n${process.exitCode ? "SOME CHECKS FAILED" : "ALL CHECKS PASSED"} — ${passed} passed`);
 } finally {

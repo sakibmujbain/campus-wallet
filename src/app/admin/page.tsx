@@ -18,7 +18,7 @@ export default async function AdminOverview() {
     <main>
       <div className="eyebrow">Admin</div>
       <h1>System overview</h1>
-      <p className="sub">The control plane. Fee catalog, role management, KYC approvals, and monitoring arrive in the next phases.</p>
+      <p className="sub">The control plane. Manage <a href="/admin/users">users &amp; roles</a>, the <a href="/admin/fees">fee catalog</a>, and monitor ledger health.</p>
       <div className="tiles">
         <div className="tile"><span className="tile-label">Users</span><span className="tile-value">{k.users}</span></div>
         <div className="tile"><span className="tile-label">Pending role requests</span><span className="tile-value">{k.pending_requests}</span></div>

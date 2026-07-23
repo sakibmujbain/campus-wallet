@@ -10,7 +10,7 @@ interface TxOptions {
   userId?: number;
   /** SERIALIZABLE runs are retried on serialization/deadlock failures. */
   isolation?: Isolation;
-  /** Max attempts under SERIALIZABLE (default 5). */
+  /** Max attempts (default: 5 serializable, 3 read-committed — enough to ride out a deadlock). */
   maxAttempts?: number;
 }
 
@@ -25,7 +25,9 @@ export async function withTransaction<T>(
   opts: TxOptions = {},
 ): Promise<T> {
   const isSerializable = opts.isolation === "serializable";
-  const maxAttempts = isSerializable ? opts.maxAttempts ?? 5 : 1;
+  // Even read-committed mutations retry a transient DEADLOCK (40P01); serializable
+  // additionally retries serialization failures (40001). This makes the docstring true.
+  const maxAttempts = opts.maxAttempts ?? (isSerializable ? 5 : 3);
   let lastErr: unknown;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {

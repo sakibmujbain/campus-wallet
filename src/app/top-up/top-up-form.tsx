@@ -26,8 +26,8 @@ export function TopUpForm() {
       } else {
         setMsg({ ok: false, text: data.error ?? "Top-up failed." });
       }
-    } catch (e) {
-      setMsg({ ok: false, text: (e as Error).message });
+    } catch {
+      setMsg({ ok: false, text: "Couldn't reach the server — please try again." });
     } finally {
       setBusy(false);
     }
@@ -37,7 +37,8 @@ export function TopUpForm() {
     <form onSubmit={submit}>
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.6rem", flexWrap: "wrap" }}>
         {["500", "1000", "2000", "5000"].map((a) => (
-          <button type="button" key={a} className="tab" style={{ flex: "1 1 auto" }} onClick={() => setAmount(a)}>
+          <button type="button" key={a} className={a === amount ? "tab active" : "tab"} style={{ flex: "1 1 auto" }}
+            aria-pressed={a === amount} onClick={() => setAmount(a)}>
             ৳{a}
           </button>
         ))}
@@ -47,7 +48,7 @@ export function TopUpForm() {
         <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" pattern="^\d+(\.\d{1,2})?$" required />
       </label>
       <button type="submit" disabled={busy}>{busy ? "Adding…" : "Add balance"}</button>
-      {msg && <div className={`msg ${msg.ok ? "ok" : "err"}`}>{msg.text}</div>}
+      {msg && <div className={`msg ${msg.ok ? "ok" : "err"}`} role="status" aria-live="polite">{msg.text}</div>}
     </form>
   );
 }

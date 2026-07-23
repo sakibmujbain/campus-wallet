@@ -74,7 +74,7 @@ export function NewPayee({ halls }: { halls: Hall[] }) {
         </label>
       )}
       <button type="submit" disabled={busy}>{busy ? "Creating…" : "Create payee"}</button>
-      {msg && <div className={`msg ${msg.ok ? "ok" : "err"}`}>{msg.text}</div>}
+      {msg && <div className={`msg ${msg.ok ? "ok" : "err"}`} role="status" aria-live="polite">{msg.text}</div>}
     </form>
   );
 }

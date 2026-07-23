@@ -24,7 +24,7 @@ export default async function Dues() {
       </p>
 
       {short && (
-        <div className="msg" style={{ background: "var(--surface-2)", color: "var(--ink)", marginBottom: "1rem" }}>
+        <div className="msg info" role="status" style={{ marginBottom: "1rem" }}>
           Your balance ({money(student.spending)}) is below your total dues ({money(String(total))}).{" "}
           <Link href="/top-up">Top up →</Link>
         </div>
@@ -38,18 +38,20 @@ export default async function Dues() {
       {paid.length > 0 && (
         <div className="card">
           <h2>Recently paid</h2>
-          <table>
-            <thead><tr><th>Fee</th><th>Period</th><th className="num">Amount</th></tr></thead>
-            <tbody>
-              {paid.map((d) => (
-                <tr key={d.assessmentId}>
-                  <td>{d.name}</td>
-                  <td><span className="kind">{d.period}</span></td>
-                  <td className="num">{money(d.amount)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="scroll-x">
+            <table>
+              <thead><tr><th>Fee</th><th>Period</th><th className="num">Amount</th></tr></thead>
+              <tbody>
+                {paid.map((d) => (
+                  <tr key={d.assessmentId}>
+                    <td>{d.name}</td>
+                    <td><span className="kind">{d.period}</span></td>
+                    <td className="num">{money(d.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

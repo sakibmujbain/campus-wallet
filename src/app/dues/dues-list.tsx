@@ -37,8 +37,8 @@ export function DuesList({ dues }: { dues: Due[] }) {
         const hint = /overdraft/i.test(data.error ?? "") ? " Top up your wallet and try again." : "";
         setMsg({ ok: false, text: (data.error ?? "Payment failed.") + hint });
       }
-    } catch (e) {
-      setMsg({ ok: false, text: (e as Error).message });
+    } catch {
+      setMsg({ ok: false, text: "Couldn't reach the server — please try again." });
     } finally {
       setBusy(null);
     }
@@ -46,26 +46,28 @@ export function DuesList({ dues }: { dues: Due[] }) {
 
   return (
     <>
-      <table>
-        <thead>
-          <tr><th>Fee</th><th>Period</th><th className="num">Amount</th><th></th></tr>
-        </thead>
-        <tbody>
-          {dues.map((d) => (
-            <tr key={d.assessmentId}>
-              <td>{d.name} <span className="kind">{d.category}</span></td>
-              <td><span className="kind">{d.period}</span></td>
-              <td className="num">{money(d.amount)}</td>
-              <td style={{ textAlign: "right" }}>
-                <button onClick={() => pay(d.assessmentId)} disabled={busy !== null}>
-                  {busy === d.assessmentId ? "Paying…" : "Pay"}
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {msg && <div className={`msg ${msg.ok ? "ok" : "err"}`} style={{ marginTop: "0.75rem" }}>{msg.text}</div>}
+      <div className="scroll-x">
+        <table>
+          <thead>
+            <tr><th>Fee</th><th>Period</th><th className="num">Amount</th><th><span className="sr-only">Pay</span></th></tr>
+          </thead>
+          <tbody>
+            {dues.map((d) => (
+              <tr key={d.assessmentId}>
+                <td>{d.name} <span className="kind">{d.category}</span></td>
+                <td><span className="kind">{d.period}</span></td>
+                <td className="num">{money(d.amount)}</td>
+                <td style={{ textAlign: "right" }}>
+                  <button onClick={() => pay(d.assessmentId)} disabled={busy !== null}>
+                    {busy === d.assessmentId ? "Paying…" : "Pay"}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {msg && <div className={`msg ${msg.ok ? "ok" : "err"}`} role="status" aria-live="polite" style={{ marginTop: "0.75rem" }}>{msg.text}</div>}
     </>
   );
 }

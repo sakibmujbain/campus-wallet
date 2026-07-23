@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getStudent } from "@/lib/session";
 import { getViewer } from "@/lib/viewer";
 import { unreadCount } from "@/db/notifications";
-import { money } from "@/lib/format";
+import { money, kycLabel, kycGuidance } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -24,9 +24,10 @@ export default async function Dashboard() {
         </div>
         <div className="topbar-right">
           <span className={`badge ${verified ? "badge-ok" : "badge-warn"}`}>
-            {verified ? "✓ e-KYC verified" : student.kycStatus}
+            {verified ? "✓ e-KYC verified" : kycLabel(student.kycStatus)}
           </span>
-          <Link href="/notifications" className="btn-ghost" aria-label="Notifications" title="Notifications">
+          <Link href="/notifications" className="btn-ghost" title="Notifications"
+            aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}>
             🔔{unread > 0 && <span style={{ marginLeft: "0.25rem", color: "var(--accent)", fontWeight: 700 }}>{unread}</span>}
           </Link>
           <Link href="/profile" className="btn-ghost">Profile</Link>
@@ -37,8 +38,11 @@ export default async function Dashboard() {
       </div>
 
       <p className="sub">
-        {student.studentNo} · {student.email} — verified via your <code>.edu.bd</code> email.
+        {student.studentNo} · {student.email}{verified && <> — verified via your <code>.edu.bd</code> email.</>}
       </p>
+      {!verified && kycGuidance(student.kycStatus) && (
+        <div className="msg info" role="status" style={{ marginTop: "1rem" }}>{kycGuidance(student.kycStatus)}</div>
+      )}
 
       {student.duesCount > 0 && (
         <Link href="/dues" className="dues-nudge">

@@ -41,12 +41,14 @@ export function KycAdmin({ rows }: { rows: KycRow[] }) {
 
   return (
     <>
-      {pending.length > 0 && (
-        <div className="card">
-          <h2>Pending approval ({pending.length})</h2>
+      <div className="card">
+        <h2>Pending approval ({pending.length})</h2>
+        {pending.length === 0 ? (
+          <p style={{ color: "var(--muted)", margin: 0 }}>No pending verifications — all caught up.</p>
+        ) : (
           <div className="scroll-x">
             <table>
-              <thead><tr><th>Student</th><th>Method</th><th></th></tr></thead>
+              <thead><tr><th>Student</th><th>Method</th><th><span className="sr-only">Approve</span></th></tr></thead>
               <tbody>
                 {pending.map((r) => (
                   <tr key={r.verificationId}>
@@ -62,8 +64,8 @@ export function KycAdmin({ rows }: { rows: KycRow[] }) {
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="card">
         <h2>All verifications ({rows.length})</h2>
@@ -89,7 +91,7 @@ export function KycAdmin({ rows }: { rows: KycRow[] }) {
         </div>
       </div>
 
-      {msg && <div className={`msg ${msg.ok ? "ok" : "err"}`}>{msg.text}</div>}
+      {msg && <div className={`msg ${msg.ok ? "ok" : "err"}`} role="status" aria-live="polite">{msg.text}</div>}
     </>
   );
 }

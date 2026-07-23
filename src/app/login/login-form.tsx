@@ -33,7 +33,7 @@ export function LoginForm() {
         if (!data.session) {
           setMsg({
             ok: true,
-            text: "Account created. If you're not redirected, email confirmation is on — disable it in Supabase (or check your inbox).",
+            text: "Account created — check your university inbox to confirm your email, then sign in.",
           });
           setBusy(false);
           return;

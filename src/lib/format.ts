@@ -7,6 +7,27 @@ export function money(v: string | number): string {
   return `৳${neg ? "-" : ""}${grouped}.${(frac + "00").slice(0, 2)}`;
 }
 
+/** Short, friendly badge label for an e-KYC status. */
+export function kycLabel(status: string): string {
+  switch (status) {
+    case "verified": return "✓ verified";
+    case "pending": return "pending review";
+    case "expired": return "⚠ expired";
+    case "alumni": return "alumni";
+    default: return status;
+  }
+}
+
+/** Actionable one-liner for a non-verified e-KYC status (null when verified). */
+export function kycGuidance(status: string): string | null {
+  switch (status) {
+    case "pending": return "Your e-KYC is pending review — you can browse, but some actions may be limited until it's verified.";
+    case "expired": return "Your e-KYC has expired. Visit the exam office to re-verify your student status.";
+    case "alumni": return "Your account is marked alumni. Contact the registrar if this is a mistake.";
+    default: return null;
+  }
+}
+
 // Business-rule SQLSTATEs our functions raise (surface to the user); anything else is internal.
 // Includes value-domain violations (numeric overflow 22003, bad datetime 22007/22008) so a
 // degenerate but well-formed input is a clean 422, not an opaque 500.

@@ -54,31 +54,38 @@ export function FeeAdmin({ fees, payees }: { fees: Fee[]; payees: Payee[] }) {
           Assess for period
           <input value={period} onChange={(e) => setPeriod(e.target.value)} style={{ width: "10rem" }} />
         </label>
-        <table>
-          <thead><tr><th>Fee</th><th>Payee</th><th>Scope</th><th className="num">Amount</th><th className="num">Assessed</th><th></th></tr></thead>
-          <tbody>
-            {fees.length === 0 ? (
-              <tr><td colSpan={6} style={{ color: "var(--muted)" }}>No fees yet — create one below.</td></tr>
-            ) : fees.map((f) => (
-              <tr key={f.feeItemId} style={{ opacity: f.active ? 1 : 0.5 }}>
-                <td>{f.name} <span className="kind">{f.category}</span></td>
-                <td>{f.collectorLabel}</td>
-                <td>{f.scopeKind}{f.scopeRef ? ` · ${f.scopeRef}` : ""}</td>
-                <td className="num">{money(f.amount)}</td>
-                <td className="num">{f.assessed}</td>
-                <td style={{ textAlign: "right" }}>
-                  <button onClick={() => assess(f.feeItemId)} disabled={busy !== null}>
-                    {busy === `assess-${f.feeItemId}` ? "…" : "Assess"}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="scroll-x">
+          <table style={{ minWidth: "640px" }}>
+            <thead><tr><th>Fee</th><th>Payee</th><th>Scope</th><th className="num">Amount</th><th className="num">Assessed</th><th><span className="sr-only">Assess</span></th></tr></thead>
+            <tbody>
+              {fees.length === 0 ? (
+                <tr><td colSpan={6} style={{ color: "var(--muted)" }}>No fees yet — create one below.</td></tr>
+              ) : fees.map((f) => (
+                <tr key={f.feeItemId} style={{ opacity: f.active ? 1 : 0.5 }}>
+                  <td>{f.name} <span className="kind">{f.category}</span></td>
+                  <td>{f.collectorLabel}</td>
+                  <td>{f.scopeKind}{f.scopeRef ? ` · ${f.scopeRef}` : ""}</td>
+                  <td className="num">{money(f.amount)}</td>
+                  <td className="num">{f.assessed}</td>
+                  <td style={{ textAlign: "right" }}>
+                    <button onClick={() => assess(f.feeItemId)} disabled={busy !== null}>
+                      {busy === `assess-${f.feeItemId}` ? "Assessing…" : "Assess"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="card">
         <h2>New fee</h2>
+        {payees.length === 0 ? (
+          <p style={{ color: "var(--muted)", margin: 0 }}>
+            Provision a payee first (<a href="/admin/wallets">Admin → Payees</a>) — a fee needs a collector wallet.
+          </p>
+        ) : (
         <form onSubmit={create}>
           <label>Name<input value={name} onChange={(e) => setName(e.target.value)} placeholder="Semester Exam Fee" required /></label>
           <div className="row">
@@ -107,9 +114,10 @@ export function FeeAdmin({ fees, payees }: { fees: Fee[]; payees: Payee[] }) {
           </div>
           <button type="submit" disabled={busy !== null}>{busy === "create" ? "Creating…" : "Create fee"}</button>
         </form>
+        )}
       </div>
 
-      {msg && <div className={`msg ${msg.ok ? "ok" : "err"}`}>{msg.text}</div>}
+      {msg && <div className={`msg ${msg.ok ? "ok" : "err"}`} role="status" aria-live="polite">{msg.text}</div>}
     </>
   );
 }

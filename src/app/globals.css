@@ -127,4 +127,35 @@ a.feature:hover { transform: translateY(-2px); border-color: var(--accent); }
 .console-nav a { color: var(--muted); text-decoration: none; }
 .console-nav a:hover { color: var(--accent); }
 
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+/* ── polish utilities (Phase F) ── */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+/* neutral/informational callout, same shape as .msg.ok / .msg.err */
+.msg.info { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--ink); }
+.msg.info strong { color: var(--accent); }
+
+/* progress bar (collection drives) — one home for the copy-pasted inline bar */
+.progress { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.progress-lg { height: 10px; }
+.progress-fill { height: 100%; background: var(--accent); border-radius: 999px; }
+
+/* skeleton shimmer for route loading boundaries */
+.skeleton { position: relative; overflow: hidden; background: var(--surface-2); border-radius: 6px; }
+.skeleton::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--muted) 16%, transparent), transparent);
+  animation: shimmer 1.3s ease-in-out infinite; }
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+.skeleton-line { height: 0.75rem; margin: 0.45rem 0; }
+.skeleton-tile { height: 4.2rem; border-radius: var(--radius); }
+
+/* tiny icon/confirm buttons kept at a ~usable touch size */
+.icon-btn { min-height: 1.9rem; min-width: 1.9rem; padding: 0.3rem 0.5rem; line-height: 1; }
+
+/* page-width helpers (replace repeated inline maxWidth overrides) */
+.main-narrow { max-width: 26rem; }
+.main-md { max-width: 40rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}

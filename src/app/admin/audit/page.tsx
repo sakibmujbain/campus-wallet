@@ -55,9 +55,9 @@ export default async function Audit({ searchParams }: { searchParams: Promise<{ 
       </p>
 
       <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", margin: "0 0 1rem", fontSize: "0.82rem" }}>
-        <Link href="/admin/audit" className={`kind ${!table ? "" : ""}`} style={{ textDecoration: "none", color: !table ? "var(--accent)" : "var(--muted)" }}>all</Link>
+        <Link href="/admin/audit" aria-current={!table ? "page" : undefined} className="kind" style={{ textDecoration: "none", color: !table ? "var(--accent)" : "var(--muted)" }}>all</Link>
         {tables.map((t) => (
-          <Link key={t} href={`/admin/audit?table=${t}`} className="kind" style={{ textDecoration: "none", color: table === t ? "var(--accent)" : "var(--muted)" }}>{t}</Link>
+          <Link key={t} href={`/admin/audit?table=${t}`} aria-current={table === t ? "page" : undefined} className="kind" style={{ textDecoration: "none", color: table === t ? "var(--accent)" : "var(--muted)" }}>{t}</Link>
         ))}
       </div>
 

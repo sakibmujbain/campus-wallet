@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -16,6 +17,7 @@ export function PayForm({ targets, balance }: { targets: Target[]; balance: stri
   const [amount, setAmount] = useState("500.00");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [needsTopUp, setNeedsTopUp] = useState(false);
 
   // Stable idempotency key per payment intent.
   const [idemKey, setIdemKey] = useState("");
@@ -27,6 +29,7 @@ export function PayForm({ targets, balance }: { targets: Target[]; balance: stri
     e.preventDefault();
     setBusy(true);
     setMsg(null);
+    setNeedsTopUp(false);
     try {
       const res = await fetch("/api/pay", {
         method: "POST",
@@ -40,10 +43,13 @@ export function PayForm({ targets, balance }: { targets: Target[]; balance: stri
         setIdemKey(crypto.randomUUID());
         router.refresh();
       } else {
-        setMsg({ ok: false, text: data.error ?? "Payment failed." });
+        // Translate the ledger's overdraft-floor rejection into a friendly nudge.
+        const overdraft = /overdraft floor|not enough|insufficient/i.test(data.error ?? "");
+        setNeedsTopUp(overdraft);
+        setMsg({ ok: false, text: overdraft ? "Not enough balance to cover this payment." : (data.error ?? "Payment failed.") });
       }
-    } catch (err) {
-      setMsg({ ok: false, text: (err as Error).message });
+    } catch {
+      setMsg({ ok: false, text: "Couldn't reach the server — please try again." });
     } finally {
       setBusy(false);
     }
@@ -74,6 +80,9 @@ export function PayForm({ targets, balance }: { targets: Target[]; balance: stri
         {busy ? "Paying…" : "Pay bill"}
       </button>
       {msg && <div className={`msg ${msg.ok ? "ok" : "err"}`}>{msg.text}</div>}
+      {needsTopUp && (
+        <Link href="/top-up" className="btn-primary" style={{ justifySelf: "start" }}>Top up your wallet →</Link>
+      )}
     </form>
   );
 }

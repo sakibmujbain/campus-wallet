@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getStudent } from "@/lib/session";
 import { getViewer } from "@/lib/viewer";
+import { kycLabel, kycGuidance } from "@/lib/format";
 import { RoleRequestForm } from "./role-request-form";
 
 export const dynamic = "force-dynamic";
@@ -24,9 +25,12 @@ export default async function Profile() {
       <div className="card">
         <h2>Verification</h2>
         <p style={{ margin: 0 }}>
-          e-KYC: <span className={`badge ${verified ? "badge-ok" : "badge-warn"}`}>{verified ? "✓ verified" : student.kycStatus}</span>
+          e-KYC: <span className={`badge ${verified ? "badge-ok" : "badge-warn"}`}>{kycLabel(student.kycStatus)}</span>
           {verified && <span style={{ color: "var(--muted)", fontSize: "0.85rem" }}> — via your .edu.bd email</span>}
         </p>
+        {!verified && kycGuidance(student.kycStatus) && (
+          <div className="msg info" role="status" style={{ marginTop: "0.75rem" }}>{kycGuidance(student.kycStatus)}</div>
+        )}
       </div>
 
       <div className="card">
@@ -54,7 +58,7 @@ export default async function Profile() {
         <Link href="/">← Dashboard</Link>
         <span>·</span>
         <form action="/auth/signout" method="post" style={{ display: "inline" }}>
-          <button className="btn-ghost" type="submit" style={{ padding: "0.15rem 0.5rem", fontSize: "0.8rem" }}>Sign out</button>
+          <button className="btn-ghost" type="submit">Sign out</button>
         </form>
       </div>
     </main>

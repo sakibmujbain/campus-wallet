@@ -31,12 +31,14 @@ export function UsersAdmin({ users, requests }: { users: User[]; requests: Req[]
 
   return (
     <>
-      {requests.length > 0 && (
-        <div className="card">
-          <h2>Pending role requests ({requests.length})</h2>
+      <div className="card">
+        <h2>Pending role requests ({requests.length})</h2>
+        {requests.length === 0 ? (
+          <p style={{ color: "var(--muted)", margin: 0 }}>No pending role requests — all caught up.</p>
+        ) : (
           <div className="scroll-x">
             <table>
-              <thead><tr><th>User</th><th>Wants</th><th>Scope</th><th>Reason</th><th></th></tr></thead>
+              <thead><tr><th>User</th><th>Wants</th><th>Scope</th><th>Reason</th><th><span className="sr-only">Decision</span></th></tr></thead>
               <tbody>
                 {requests.map((r) => (
                   <tr key={r.requestId}>
@@ -53,8 +55,8 @@ export function UsersAdmin({ users, requests }: { users: User[]; requests: Req[]
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="card">
         <h2>Users ({users.length})</h2>
@@ -68,7 +70,7 @@ export function UsersAdmin({ users, requests }: { users: User[]; requests: Req[]
         </div>
       </div>
 
-      {msg && <div className={`msg ${msg.ok ? "ok" : "err"}`}>{msg.text}</div>}
+      {msg && <div className={`msg ${msg.ok ? "ok" : "err"}`} role="status" aria-live="polite">{msg.text}</div>}
     </>
   );
 }
@@ -90,8 +92,8 @@ function UserRow({ u, busy, onPromote, onDemote, onDept }: {
       <td style={{ whiteSpace: "nowrap" }}>
         {isStudent ? (
           <>
-            <input value={dept} onChange={(e) => setDept(e.target.value)} placeholder="—" style={{ width: "5rem" }} />
-            <button className="btn-ghost" onClick={() => onDept(u.userId, dept)} disabled={busy !== null || dept === (u.department ?? "")} title="Save department">✓</button>
+            <input value={dept} onChange={(e) => setDept(e.target.value)} placeholder="—" style={{ width: "5rem" }} aria-label={`Department for ${u.fullName}`} />
+            <button className="btn-ghost icon-btn" onClick={() => onDept(u.userId, dept)} disabled={busy !== null || dept === (u.department ?? "")} title="Save department" aria-label="Save department">✓</button>
           </>
         ) : "—"}
       </td>
@@ -99,8 +101,8 @@ function UserRow({ u, busy, onPromote, onDemote, onDept }: {
         {u.grants.length === 0 ? <span className="kind">student</span> : u.grants.map((g, i) => (
           <span key={i} className="kind" style={{ marginRight: "0.25rem", whiteSpace: "nowrap" }}>
             {g.capability}{g.scopeRef ? `·${g.scopeRef}` : ""}{" "}
-            <button onClick={() => onDemote(u.userId, g)} disabled={busy !== null}
-              style={{ border: "none", background: "none", color: "var(--bad)", cursor: "pointer", padding: 0, fontWeight: 700 }} title="Revoke">×</button>
+            <button onClick={() => onDemote(u.userId, g)} disabled={busy !== null} aria-label={`Revoke ${g.capability}`}
+              style={{ border: "none", background: "none", color: "var(--bad)", cursor: "pointer", padding: "0 0.25rem", fontWeight: 700 }} title="Revoke">×</button>
           </span>
         ))}
       </td>

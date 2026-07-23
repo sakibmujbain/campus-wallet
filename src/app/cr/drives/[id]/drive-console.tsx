@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { money } from "@/lib/format";
+import { Progress } from "@/components/progress";
 
 interface DriveDetail {
   eventId: number; name: string; batch: string | null; clubName: string | null; status: string;
@@ -22,6 +23,7 @@ export function DriveConsole({ drive, roster, destinations }: { drive: DriveDeta
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [destination, setDestination] = useState(String(destinations[0]?.accountId ?? ""));
+  const [confirming, setConfirming] = useState<null | "cancel" | "settle">(null);
 
   const finalized = drive.status === "settled" || drive.status === "cancelled";
   const settled = drive.status === "settled"; // pool swept to a treasury — refunds are closed
@@ -42,10 +44,11 @@ export function DriveConsole({ drive, roster, destinations }: { drive: DriveDeta
       } else {
         setMsg({ ok: false, text: d.error ?? "Action failed." });
       }
-    } catch (e) {
-      setMsg({ ok: false, text: (e as Error).message });
+    } catch {
+      setMsg({ ok: false, text: "Couldn't reach the server — please try again." });
     } finally {
       setBusy(null);
+      setConfirming(null);
     }
   }
 
@@ -70,17 +73,25 @@ export function DriveConsole({ drive, roster, destinations }: { drive: DriveDeta
           <span>{money(drive.collected)} of {money(drive.target)} collected · {drive.rosterSize} on roster · {defaulters.length} unpaid</span>
           <span style={{ fontVariantNumeric: "tabular-nums" }}>{drive.pct}%</span>
         </div>
-        <div style={{ height: 10, borderRadius: 999, background: "var(--surface-2)", overflow: "hidden" }}>
-          <div style={{ width: `${pct}%`, height: "100%", background: "var(--accent)" }} />
-        </div>
+        <Progress value={pct} large label={`${drive.name} collection progress`} />
 
         {!finalized && (
-          <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem", flexWrap: "wrap" }}>
-            {drive.status === "open" && <button className="btn-ghost" disabled={busy !== null} onClick={() => post({ action: "status", status: "closed" }, "status")}>Close collections</button>}
-            {drive.status === "closed" && <button className="btn-ghost" disabled={busy !== null} onClick={() => post({ action: "status", status: "open" }, "status")}>Reopen</button>}
-            <button className="btn-ghost" disabled={busy !== null}
-              onClick={() => { if (confirm("Cancel this drive? Collections stop; this is final.")) post({ action: "status", status: "cancelled" }, "status"); }}
-              style={{ color: "var(--bad)" }}>Cancel drive</button>
+          <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem", flexWrap: "wrap", alignItems: "center" }}>
+            {confirming === "cancel" ? (
+              <>
+                <span style={{ fontSize: "0.88rem" }}>Cancel this drive? Collections stop — this is final.</span>
+                <button className="btn-ghost" disabled={busy !== null} style={{ color: "var(--bad)" }}
+                  onClick={() => post({ action: "status", status: "cancelled" }, "status")}>Yes, cancel</button>
+                <button className="btn-ghost" disabled={busy !== null} onClick={() => setConfirming(null)}>Keep open</button>
+              </>
+            ) : (
+              <>
+                {drive.status === "open" && <button className="btn-ghost" disabled={busy !== null} onClick={() => post({ action: "status", status: "closed" }, "status")}>Close collections</button>}
+                {drive.status === "closed" && <button className="btn-ghost" disabled={busy !== null} onClick={() => post({ action: "status", status: "open" }, "status")}>Reopen</button>}
+                <button className="btn-ghost" disabled={busy !== null} style={{ color: "var(--bad)" }}
+                  onClick={() => { setMsg(null); setConfirming("cancel"); }}>Cancel drive</button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -106,7 +117,7 @@ export function DriveConsole({ drive, roster, destinations }: { drive: DriveDeta
         {settled && <p className="sub" style={{ marginTop: 0 }}>This drive is settled — its funds were transferred to the treasury, so refunds are closed.</p>}
         <div className="scroll-x">
           <table style={{ minWidth: "620px" }}>
-            <thead><tr><th>Student</th><th className="num">Expected</th><th className="num">Paid</th><th className="num">Outstanding</th><th></th></tr></thead>
+            <thead><tr><th>Student</th><th className="num">Expected</th><th className="num">Paid</th><th className="num">Outstanding</th><th><span className="sr-only">Actions</span></th></tr></thead>
             <tbody>
               {roster.map((r) => (
                 <tr key={r.studentId}>
@@ -138,28 +149,45 @@ export function DriveConsole({ drive, roster, destinations }: { drive: DriveDeta
       {!finalized && (
         <div className="card">
           <h2>Settle</h2>
-          <p className="sub" style={{ marginTop: 0 }}>
-            Sweep the full collected balance ({money(drive.collected)}) into an institutional treasury and close the drive.
-            The destination must be a campus wallet — never a personal account.
-          </p>
-          <div className="row">
-            <label>
-              Destination treasury
-              <select value={destination} onChange={(e) => setDestination(e.target.value)}>
-                {destinations.map((t) => <option key={t.accountId} value={t.accountId}>{t.label} ({t.instKind})</option>)}
-              </select>
-            </label>
-            <div style={{ display: "flex", alignItems: "flex-end" }}>
-              <button disabled={busy !== null || !destination}
-                onClick={() => { if (confirm(`Settle ${money(drive.collected)} to this treasury? This is final.`)) post({ action: "settle", destination: Number(destination) }, "settle", () => "Drive settled."); }}>
-                {busy === "settle" ? "Settling…" : "Settle drive"}
-              </button>
-            </div>
-          </div>
+          {destinations.length === 0 ? (
+            <p className="sub" style={{ marginTop: 0 }}>
+              No institutional treasury wallet is set up yet — ask an admin to add one (Admin → Payees) before settling.
+            </p>
+          ) : (
+            <>
+              <p className="sub" style={{ marginTop: 0 }}>
+                Sweep the full collected balance ({money(drive.collected)}) into an institutional treasury and close the drive.
+                The destination must be a campus wallet — never a personal account.
+              </p>
+              {confirming === "settle" ? (
+                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: "0.88rem" }}>
+                    Settle {money(drive.collected)} to “{destinations.find((t) => String(t.accountId) === destination)?.label}”? This is final.
+                  </span>
+                  <button disabled={busy !== null} onClick={() => post({ action: "settle", destination: Number(destination) }, "settle", () => "Drive settled.")}>
+                    {busy === "settle" ? "Settling…" : "Yes, settle"}
+                  </button>
+                  <button className="btn-ghost" disabled={busy !== null} onClick={() => setConfirming(null)}>Cancel</button>
+                </div>
+              ) : (
+                <div className="row">
+                  <label>
+                    Destination treasury
+                    <select value={destination} onChange={(e) => setDestination(e.target.value)}>
+                      {destinations.map((t) => <option key={t.accountId} value={t.accountId}>{t.label} ({t.instKind})</option>)}
+                    </select>
+                  </label>
+                  <div style={{ display: "flex", alignItems: "flex-end" }}>
+                    <button disabled={busy !== null || !destination} onClick={() => { setMsg(null); setConfirming("settle"); }}>Settle drive</button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 
-      {msg && <div className={`msg ${msg.ok ? "ok" : "err"}`}>{msg.text}</div>}
+      {msg && <div className={`msg ${msg.ok ? "ok" : "err"}`} role="status" aria-live="polite">{msg.text}</div>}
     </>
   );
 }
@@ -173,9 +201,9 @@ function RefundCell({ max, busy, onRefund }: { max: string; busy: boolean; onRef
   if (!open) return <button className="btn-ghost" disabled={busy} onClick={() => setOpen(true)}>Refund</button>;
   return (
     <span style={{ display: "inline-flex", gap: "0.3rem", alignItems: "center" }}>
-      <input value={amt} onChange={(e) => { setAmt(e.target.value); setIdem(crypto.randomUUID()); }} inputMode="decimal" style={{ width: "5rem" }} aria-label="refund amount" />
-      <button disabled={busy} onClick={() => onRefund(amt, idem)} style={{ padding: "0.35rem 0.6rem" }}>OK</button>
-      <button className="btn-ghost" disabled={busy} onClick={() => setOpen(false)} style={{ padding: "0.35rem 0.5rem" }}>✕</button>
+      <input value={amt} onChange={(e) => { setAmt(e.target.value); setIdem(crypto.randomUUID()); }} inputMode="decimal" style={{ width: "5rem" }} aria-label="Refund amount" />
+      <button className="icon-btn" disabled={busy} onClick={() => onRefund(amt, idem)} aria-label="Confirm refund">OK</button>
+      <button className="btn-ghost icon-btn" disabled={busy} onClick={() => setOpen(false)} aria-label="Cancel refund">✕</button>
     </span>
   );
 }

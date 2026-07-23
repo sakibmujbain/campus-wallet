@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireViewer } from "@/lib/viewer";
 import { listMyDrives } from "@/db/organizer";
 import { money } from "@/lib/format";
+import { Progress } from "@/components/progress";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,6 @@ export default async function OrganizerHome() {
         </div>
       ) : (
         drives.map((e) => {
-          const pct = Math.min(100, Number(e.pct));
           return (
             <Link className="card card-link" key={e.eventId} href={`/cr/drives/${e.eventId}`}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "0.5rem" }}>
@@ -44,10 +44,8 @@ export default async function OrganizerHome() {
                 <span>{money(e.collected)} of {money(e.target)} · {e.rosterSize} on roster · {e.defaulterCount} unpaid</span>
                 <span style={{ fontVariantNumeric: "tabular-nums" }}>{e.pct}%</span>
               </div>
-              <div style={{ height: 8, borderRadius: 999, background: "var(--surface-2)", overflow: "hidden" }}>
-                <div style={{ width: `${pct}%`, height: "100%", background: "var(--accent)" }} />
-              </div>
-            </Link>
+              <Progress value={Number(e.pct)} label={`${e.name} collection progress`} />
+              </Link>
           );
         })
       )}

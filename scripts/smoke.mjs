@@ -267,6 +267,23 @@ try {
     client.query(`SELECT provision_student(gen_random_uuid(), $1, 'X')`, [`bad-${tag}@gmail.com`]),
     "requires a .edu.bd", "non-.edu.bd registration blocked");
 
+  // ── Roles & authorization (Phase A) ──
+  const adminUid = (await client.query(`SELECT provision_student(gen_random_uuid(), $1, 'Admin') AS id`, [`admin-${tag}@x.edu.bd`])).rows[0].id;
+  const targetUid = (await client.query(`SELECT provision_student(gen_random_uuid(), $1, 'Target') AS id`, [`target-${tag}@x.edu.bd`])).rows[0].id;
+
+  await client.query(`SELECT ensure_admin($1, true)`, [adminUid]);
+  if ((await client.query(`SELECT is_admin($1) AS a`, [adminUid])).rows[0].a === true) ok("ensure_admin grants admin"); else fail("ensure_admin failed");
+
+  await expectError(client.query(`SELECT request_role($1,'admin')`, [targetUid]), "cannot request the admin role", "requesting admin blocked");
+  await expectError(client.query(`SELECT promote_user($1,$2,'cr')`, [targetUid, adminUid]), "only an admin", "non-admin promote blocked (42501)");
+
+  await client.query(`SELECT promote_user($1,$2,'cr','batch','CSE-2021')`, [adminUid, targetUid]);
+  if ((await client.query(`SELECT count(*)::int c FROM role_grant WHERE user_id=$1 AND capability='cr'`, [targetUid])).rows[0].c === 1) ok("admin promotes user to cr (scoped)"); else fail("promote failed");
+
+  const reqId = (await client.query(`SELECT request_role($1,'club_exec','club','Robotics') AS id`, [targetUid])).rows[0].id;
+  await client.query(`SELECT decide_role_request($1,$2,true)`, [adminUid, reqId]);
+  if ((await client.query(`SELECT count(*)::int c FROM role_grant WHERE user_id=$1 AND capability='club_exec'`, [targetUid])).rows[0].c === 1) ok("approve role request grants the capability"); else fail("decide_role_request failed");
+
   console.log(`\n${process.exitCode ? "SOME CHECKS FAILED" : "ALL CHECKS PASSED"} — ${passed} passed`);
 } finally {
   await client.end();

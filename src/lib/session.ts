@@ -1,6 +1,6 @@
 import { cache } from "react";
-import { createClient } from "@/lib/supabase/server";
 import { pool } from "@/db/pool";
+import { getViewer } from "@/lib/viewer";
 
 export interface Student {
   appUserId: number;
@@ -16,15 +16,9 @@ export interface Student {
 // Resolves the authenticated Supabase user, idempotently provisions their
 // app_user/student/wallets, and returns a dashboard summary. Cached per request.
 export const getStudent = cache(async (): Promise<Student | null> => {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user || !user.email) return null;
-
-  const fullName = (user.user_metadata?.full_name as string | undefined) ?? "";
-  const { rows } = await pool.query(`SELECT provision_student($1::uuid, $2, $3) AS user_id`, [user.id, user.email, fullName]);
-  const appUserId = Number(rows[0].user_id);
+  const v = await getViewer(); // resolves + provisions the app_user (any role)
+  if (!v) return null;
+  const appUserId = v.appUserId;
 
   const { rows: sum } = await pool.query(
     `SELECT au.full_name,
@@ -44,7 +38,7 @@ export const getStudent = cache(async (): Promise<Student | null> => {
   const r = sum[0];
   return {
     appUserId,
-    email: user.email,
+    email: v.email,
     fullName: r.full_name,
     studentNo: r.student_no,
     kycStatus: r.kyc_status,

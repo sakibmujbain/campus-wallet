@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getStudent } from "@/lib/session";
+import { getViewer } from "@/lib/viewer";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,7 @@ function money(v: string): string {
 export default async function Dashboard() {
   const student = await getStudent();
   if (!student) redirect("/login");
+  const viewer = await getViewer();
 
   const verified = student.kycStatus === "verified";
 
@@ -74,6 +76,28 @@ export default async function Dashboard() {
           <span className="feature-desc">Earn points on campus spending and redeem them back to BDT.</span>
         </div>
       </div>
+
+      {viewer && (viewer.isAdmin || viewer.has("cr") || viewer.has("club_exec")) && (
+        <>
+          <h2 style={{ fontSize: "1rem", margin: "2rem 0 1rem" }}>Your consoles</h2>
+          <div className="features">
+            {viewer.isAdmin && (
+              <Link href="/admin" className="feature">
+                <span className="feature-icon">⚙️</span>
+                <span className="feature-title">Admin console</span>
+                <span className="feature-desc">Fee catalog, roles, KYC approvals, and system monitoring.</span>
+              </Link>
+            )}
+            {(viewer.has("cr") || viewer.has("club_exec")) && (
+              <Link href="/cr" className="feature">
+                <span className="feature-icon">📣</span>
+                <span className="feature-title">Organizer console</span>
+                <span className="feature-desc">Create collection drives and chase defaulters.</span>
+              </Link>
+            )}
+          </div>
+        </>
+      )}
 
       <p className="foot" style={{ marginTop: "2.5rem" }}>
         Money moves through an immutable double-entry ledger; balances are derived, not stored.

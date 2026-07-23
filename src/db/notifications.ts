@@ -14,7 +14,8 @@ export interface Notification {
 export async function listNotifications(appUserId: number, limit = 50): Promise<Notification[]> {
   const { rows } = await pool.query(
     `SELECT notification_id::int AS "notificationId", kind, title, body, link,
-            (read_at IS NOT NULL) AS read, created_at::text AS "createdAt"
+            (read_at IS NOT NULL) AS read,
+            to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "createdAt"
        FROM notification WHERE user_id = $1
       ORDER BY created_at DESC, notification_id DESC
       LIMIT $2`,

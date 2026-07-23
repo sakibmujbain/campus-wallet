@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { money } from "@/lib/format";
+import { newIdem } from "@/lib/idem";
 
 interface Due {
   assessmentId: number;
@@ -27,7 +28,7 @@ export function DuesList({ dues }: { dues: Due[] }) {
       const res = await fetch("/api/dues/pay", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ assessmentId: id, idempotencyKey: crypto.randomUUID() }),
+        body: JSON.stringify({ assessmentId: id, idempotencyKey: newIdem() }),
       });
       const data = await res.json();
       if (res.ok && data.ok) {

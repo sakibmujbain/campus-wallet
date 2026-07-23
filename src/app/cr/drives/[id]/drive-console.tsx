@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { money } from "@/lib/format";
+import { newIdem } from "@/lib/idem";
 import { Progress } from "@/components/progress";
 
 interface DriveDetail {
@@ -197,11 +198,11 @@ function RefundCell({ max, busy, onRefund }: { max: string; busy: boolean; onRef
   const [open, setOpen] = useState(false);
   // One idempotency key per refund intent; a changed amount is a new intent -> new key.
   // A retried submit of the SAME amount reuses the key, so refund_event replays the one txn.
-  const [idem, setIdem] = useState<string>(() => crypto.randomUUID());
+  const [idem, setIdem] = useState<string>(() => newIdem());
   if (!open) return <button className="btn-ghost" disabled={busy} onClick={() => setOpen(true)}>Refund</button>;
   return (
     <span style={{ display: "inline-flex", gap: "0.3rem", alignItems: "center" }}>
-      <input value={amt} onChange={(e) => { setAmt(e.target.value); setIdem(crypto.randomUUID()); }} inputMode="decimal" style={{ width: "5rem" }} aria-label="Refund amount" />
+      <input value={amt} onChange={(e) => { setAmt(e.target.value); setIdem(newIdem()); }} inputMode="decimal" style={{ width: "5rem" }} aria-label="Refund amount" />
       <button className="icon-btn" disabled={busy} onClick={() => onRefund(amt, idem)} aria-label="Confirm refund">OK</button>
       <button className="btn-ghost icon-btn" disabled={busy} onClick={() => setOpen(false)} aria-label="Cancel refund">✕</button>
     </span>

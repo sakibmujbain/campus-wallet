@@ -7,7 +7,8 @@ import { MarkRead } from "./mark-read";
 export const dynamic = "force-dynamic";
 
 function ago(iso: string): string {
-  const then = new Date(iso.replace(" ", "T")).getTime();
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
   const s = Math.max(0, Math.floor((Date.now() - then) / 1000));
   if (s < 60) return "just now";
   if (s < 3600) return `${Math.floor(s / 60)}m ago`;

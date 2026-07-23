@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { newIdem } from "@/lib/idem";
 
 interface Target {
   accountId: number;
@@ -22,7 +23,7 @@ export function PayForm({ targets, balance }: { targets: Target[]; balance: stri
   // Stable idempotency key per payment intent.
   const [idemKey, setIdemKey] = useState("");
   useEffect(() => {
-    setIdemKey(crypto.randomUUID());
+    setIdemKey(newIdem());
   }, [to, amount]);
 
   async function submit(e: React.FormEvent) {
@@ -35,12 +36,12 @@ export function PayForm({ targets, balance }: { targets: Target[]; balance: stri
         method: "POST",
         headers: { "content-type": "application/json" },
         // payer is derived from the session server-side — we only send target + amount.
-        body: JSON.stringify({ to, amount, idempotencyKey: idemKey || crypto.randomUUID() }),
+        body: JSON.stringify({ to, amount, idempotencyKey: idemKey || newIdem() }),
       });
       const data = await res.json();
       if (res.ok && data.ok) {
         setMsg({ ok: true, text: `Paid — transaction #${data.txnId}. Spare change swept to savings.` });
-        setIdemKey(crypto.randomUUID());
+        setIdemKey(newIdem());
         router.refresh();
       } else {
         // Translate the ledger's overdraft-floor rejection into a friendly nudge.

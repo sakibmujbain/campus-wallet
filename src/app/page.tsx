@@ -87,16 +87,16 @@ export default async function Dashboard() {
           <span className="feature-title">Events &amp; Defaulters</span>
           <span className="feature-desc">Club/batch collections with a live, self-updating defaulter list.</span>
         </Link>
-        <div className="feature feature-static">
+        <Link href="/savings" className="feature">
           <span className="feature-icon">🐖</span>
           <span className="feature-title">Tuition Shield (round-ups)</span>
-          <span className="feature-desc">Every purchase rounds up; the spare change is auto-saved and locked.</span>
-        </div>
-        <div className="feature feature-static">
+          <span className="feature-desc">Your locked savings, round-up history, and tune the step.</span>
+        </Link>
+        <Link href="/rewards" className="feature">
           <span className="feature-icon">💎</span>
           <span className="feature-title">Loyalty rewards</span>
-          <span className="feature-desc">Earn points on campus spending and redeem them back to BDT.</span>
-        </div>
+          <span className="feature-desc">Redeem points back to BDT and climb the RANK() leaderboard.</span>
+        </Link>
       </div>
 
       {viewer && (viewer.isAdmin || viewer.has("cr") || viewer.has("club_exec")) && (

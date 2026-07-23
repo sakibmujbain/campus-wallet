@@ -438,6 +438,24 @@ try {
   await expectError(client.query(`SELECT admin_open_payee($1,'hall','notanid')`, [adminUid]),
     "hall reference must be", "hall payee with a non-numeric ref rejected");
 
+  // ── Student-tunable round-up (Tuition Shield UI) ──
+  await expectError(client.query(`SELECT set_savings_config(10, true)`),
+    "no session user", "set_savings_config without a session blocked (42501)");
+  await client.query("BEGIN");
+  await client.query(`SELECT set_config('app.current_user_id',$1,true)`, [String(dave.uid)]);
+  await client.query(`SELECT set_savings_config(50, true)`);
+  await client.query("COMMIT");
+  const sc = (await client.query(`SELECT step, enabled FROM savings_config WHERE student_id=$1`, [dave.uid])).rows[0];
+  if (sc && sc.step === 50 && sc.enabled === true) ok("set_savings_config upserts the caller's round-up (step 50, on)");
+  else fail(`savings config wrong: ${JSON.stringify(sc)}`);
+  await expectError((async () => {
+    await client.query("BEGIN");
+    await client.query(`SELECT set_config('app.current_user_id',$1,true)`, [String(dave.uid)]);
+    await client.query(`SELECT set_savings_config(25, true)`);
+    await client.query("COMMIT");
+  })(), "step must be 10 or 50", "invalid round-up step rejected");
+  await client.query("ROLLBACK").catch(() => {});
+
   console.log(`\n${process.exitCode ? "SOME CHECKS FAILED" : "ALL CHECKS PASSED"} — ${passed} passed`);
 } finally {
   await client.end();

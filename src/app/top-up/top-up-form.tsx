@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { newIdem } from "@/lib/idem";
 
 export function TopUpForm() {
   const router = useRouter();
@@ -17,7 +18,7 @@ export function TopUpForm() {
       const res = await fetch("/api/top-up", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ amount, idempotencyKey: crypto.randomUUID() }),
+        body: JSON.stringify({ amount, idempotencyKey: newIdem() }),
       });
       const data = await res.json();
       if (res.ok && data.ok) {

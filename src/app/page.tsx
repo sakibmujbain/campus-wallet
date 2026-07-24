@@ -82,10 +82,10 @@ export default async function Dashboard() {
           <span className="feature-title">Campus Payment Hub</span>
           <span className="feature-desc">Pay exam fees, hall dues, and cafeteria tills — one tap, zero fees.</span>
         </Link>
-        <Link href="/events" className="feature">
+        <Link href="/my-events" className="feature">
           <span className="feature-icon">📅</span>
-          <span className="feature-title">Events &amp; Defaulters</span>
-          <span className="feature-desc">Club/batch collections with a live, self-updating defaulter list.</span>
+          <span className="feature-title">My collections</span>
+          <span className="feature-desc">Pay the batch &amp; club drives you&apos;re on, and track what you owe.</span>
         </Link>
         <Link href="/savings" className="feature">
           <span className="feature-icon">🐖</span>

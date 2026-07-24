@@ -88,7 +88,7 @@ export default async function Events() {
       )}
 
       <p className="foot">
-        <Link href="/">← Wallet balances</Link> · <Link href="/hub">Payment hub</Link>
+        <Link href="/">← Wallet balances</Link> · <Link href="/my-events">Pay your drives</Link> · <Link href="/hub">Payment hub</Link>
       </p>
     </main>
   );

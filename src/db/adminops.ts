@@ -80,6 +80,14 @@ export async function listAuditTables(): Promise<string[]> {
   return rows.map((r) => r.table_name as string);
 }
 
+/** id → full name, to turn the bare user ids in audit diffs into readable names. */
+export async function getUserNames(): Promise<Record<number, string>> {
+  const { rows } = await pool.query(`SELECT user_id::int AS id, full_name FROM app_user`);
+  const map: Record<number, string> = {};
+  for (const r of rows) map[r.id] = r.full_name as string;
+  return map;
+}
+
 // ── Payees (institutional wallets) ──────────────────────────────────────────
 
 export interface Payee {

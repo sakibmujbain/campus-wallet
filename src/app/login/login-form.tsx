@@ -16,8 +16,9 @@ export function LoginForm() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
-    if (!email.toLowerCase().endsWith(".edu.bd")) {
-      setMsg({ ok: false, text: "Please use your university .edu.bd email address." });
+    const addr = email.toLowerCase();
+    if (!addr.endsWith(".edu.bd") && !addr.endsWith(".du.ac.bd")) {
+      setMsg({ ok: false, text: "Please use your university email (.edu.bd or .du.ac.bd)." });
       return;
     }
     setBusy(true);
@@ -73,7 +74,7 @@ export function LoginForm() {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@student.university.edu.bd"
+          placeholder="you@cs.du.ac.bd"
           required
         />
       </label>
@@ -86,7 +87,7 @@ export function LoginForm() {
       </button>
       {msg && <div className={`msg ${msg.ok ? "ok" : "err"}`}>{msg.text}</div>}
       <p className="foot" style={{ marginTop: "0.4rem" }}>
-        Only <code>.edu.bd</code> university emails can register — that's your e-KYC verification.
+        Only university emails (<code>.edu.bd</code> or <code>.du.ac.bd</code>) can register — that's your e-KYC verification.
       </p>
     </form>
   );

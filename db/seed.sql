@@ -15,8 +15,6 @@ DECLARE
     v_spend    BIGINT;
     v_save     BIGINT;
     v_kyc      BIGINT;
-    v_clubA    BIGINT;
-    v_clubB    BIGINT;
     v_event    BIGINT;
     v_examfee  BIGINT;
     v_hallfee  BIGINT;
@@ -85,18 +83,10 @@ BEGIN
           WHERE st.student_no = 'CSE-2021-001' AND sw.wallet_purpose = 'spending'),
         v_exam, 497.00, 'BDT', gen_random_uuid(), 'exam fee — CSE');
 
-    -- Clubs with overlapping membership (Sakib is in both) for the INTERSECT demo.
-    INSERT INTO club (name) VALUES ('Programming Club') RETURNING club_id INTO v_clubA;
-    INSERT INTO club (name) VALUES ('Robotics Club')    RETURNING club_id INTO v_clubB;
-    INSERT INTO club_member (club_id, student_id)
-        SELECT v_clubA, student_id FROM student WHERE student_no IN ('CSE-2021-001','CSE-2021-002');
-    INSERT INTO club_member (club_id, student_id)
-        SELECT v_clubB, student_id FROM student WHERE student_no IN ('CSE-2021-002','EEE-2022-014');
-
     -- A batch event: roster of all 3 @ 500 BDT. Ayesha pays in full, Sakib pays
     -- partially, Nadia not at all -> Sakib + Nadia show on the live defaulter list.
     v_event := create_event('CSE Batch Picnic', '2021',
-        (SELECT user_id FROM app_user WHERE lower(email) = 'ayesha@student.university.edu.bd'), v_clubA);
+        (SELECT user_id FROM app_user WHERE lower(email) = 'ayesha@student.university.edu.bd'));
     INSERT INTO event_roster (event_id, student_id, expected_amount)
         SELECT v_event, student_id, 500.00 FROM student WHERE student_no IN ('CSE-2021-001','CSE-2021-002','EEE-2022-014');
     PERFORM pay_event((SELECT sw.account_id FROM student_wallet sw JOIN student st ON st.student_id = sw.student_id
@@ -104,5 +94,5 @@ BEGIN
     PERFORM pay_event((SELECT sw.account_id FROM student_wallet sw JOIN student st ON st.student_id = sw.student_id
                         WHERE st.student_no = 'CSE-2021-002' AND sw.wallet_purpose = 'spending'), v_event, 200.00, gen_random_uuid());
 
-    RAISE NOTICE 'seed complete: 2 halls, 3 payees, treasury+loyalty pool, 3 students, 2 clubs, 1 event';
+    RAISE NOTICE 'seed complete: 2 halls, 3 payees, treasury+loyalty pool, 3 students, 1 event';
 END $$;

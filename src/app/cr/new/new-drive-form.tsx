@@ -18,7 +18,7 @@ export function NewDriveForm({ scopes, isAdmin }: { scopes: Scope[]; isAdmin: bo
   const [deadline, setDeadline] = useState("");
   const [description, setDescription] = useState("");
   // custom-scope fields (admin only)
-  const [customKind, setCustomKind] = useState("batch");
+  const [customKind] = useState("batch");
   const [customRef, setCustomRef] = useState("");
 
   const [busy, setBusy] = useState(false);
@@ -58,7 +58,7 @@ export function NewDriveForm({ scopes, isAdmin }: { scopes: Scope[]; isAdmin: bo
   }
 
   if (options.length === 0 && !isAdmin) {
-    return <p style={{ color: "var(--muted)", margin: 0 }}>You don&apos;t have an organizer grant with a batch or club scope yet. Request one from your <a href="/profile">profile</a>.</p>;
+    return <p style={{ color: "var(--muted)", margin: 0 }}>You don&apos;t have an organizer grant with a batch scope yet. Request one from your <a href="/profile">profile</a>.</p>;
   }
 
   return (
@@ -79,19 +79,10 @@ export function NewDriveForm({ scopes, isAdmin }: { scopes: Scope[]; isAdmin: bo
       )}
 
       {usingCustom && (
-        <div className="row">
-          <label>
-            Roster scope
-            <select value={customKind} onChange={(e) => setCustomKind(e.target.value)}>
-              <option value="batch">Batch (a whole year group)</option>
-              <option value="club">Club (all members)</option>
-            </select>
-          </label>
-          <label>
-            {customKind === "batch" ? "Batch (e.g. 2021)" : "Club name"}
-            <input value={customRef} onChange={(e) => setCustomRef(e.target.value)} placeholder={customKind === "batch" ? "2021" : "Robotics Club"} />
-          </label>
-        </div>
+        <label>
+          Batch / session (who is on the roster)
+          <input value={customRef} onChange={(e) => setCustomRef(e.target.value)} placeholder="e.g. 2023-24" />
+        </label>
       )}
 
       <div className="row">

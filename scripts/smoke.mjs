@@ -213,7 +213,7 @@ try {
       WHERE proname IN ('submit_kyc','approve_kyc','refresh_leaderboard','make_purchase','redeem_points')`)).rows[0].ok;
   if (writersSecdef === true) ok("KYC/loyalty writer functions are SECURITY DEFINER"); else fail("a writer function is not SECURITY DEFINER");
 
-  // ── Phase 3: event wallets, defaulter list (EXCEPT), club overlap (INTERSECT) ──
+  // ── Phase 3: event wallets, defaulter list (EXCEPT), refund re-adds ──
   const eventId = (await client.query(`SELECT create_event('Smoke Picnic','2024',$1,NULL) AS id`, [alice.uid])).rows[0].id;
   await client.query(`INSERT INTO event_roster(event_id, student_id, expected_amount) VALUES ($1,$2,500),($1,$3,500),($1,$4,500)`, [eventId, alice.uid, bob.uid, carol.uid]);
   await client.query(`SELECT pay_event($1,$2,500.00,gen_random_uuid())`, [alice.spend, eventId]); // full
@@ -233,14 +233,6 @@ try {
   await expectError(
     client.query(`SELECT refund_event($1,$2,999.00,gen_random_uuid())`, [eventId, bob.spend]),
     "exceeds student net contribution", "over-refund blocked (cap)");
-
-  const clubA = (await client.query(`INSERT INTO club(name) VALUES ($1) RETURNING club_id`, [`SmokeClubA-${tag}`])).rows[0].club_id;
-  const clubB = (await client.query(`INSERT INTO club(name) VALUES ($1) RETURNING club_id`, [`SmokeClubB-${tag}`])).rows[0].club_id;
-  await client.query(`INSERT INTO club_member(club_id, student_id) VALUES ($1,$2),($1,$3)`, [clubA, alice.uid, bob.uid]);
-  await client.query(`INSERT INTO club_member(club_id, student_id) VALUES ($1,$2),($1,$3)`, [clubB, bob.uid, carol.uid]);
-  const overlap = (await client.query(`SELECT student_id::int AS sid FROM club_overlap($1,$2)`, [clubA, clubB])).rows;
-  if (overlap.length === 1 && Number(overlap[0].sid) === Number(bob.uid)) ok("club overlap via INTERSECT (only the shared member)");
-  else fail(`INTERSECT wrong: ${JSON.stringify(overlap)}`);
 
   // Pooled totality: a bare pooled account with no event subtype is rejected at COMMIT.
   await expectError((async () => {

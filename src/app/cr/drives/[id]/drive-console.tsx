@@ -8,7 +8,7 @@ import { Progress } from "@/components/progress";
 import { DU_DEPARTMENT_GROUPS, DU_SESSIONS } from "@/lib/du";
 
 interface DriveDetail {
-  eventId: number; name: string; batch: string | null; clubName: string | null; status: string;
+  eventId: number; name: string; batch: string | null; status: string;
   description: string | null; deadline: string | null;
   collected: string; target: string; pct: string; rosterSize: number; defaulterCount: number;
 }
@@ -63,7 +63,6 @@ export function DriveConsole({ drive, roster, destinations, halls }: { drive: Dr
           <h1 style={{ fontSize: "1.5rem", margin: 0 }}>{drive.name}</h1>
           <p className="sub" style={{ margin: "0.3rem 0 0" }}>
             {drive.batch && <span className="kind">batch {drive.batch}</span>}{" "}
-            {drive.clubName && <span className="kind">{drive.clubName}</span>}{" "}
             {drive.deadline && <span style={{ fontSize: "0.82rem", color: "var(--muted)" }}>· due {drive.deadline.slice(0, 10)}</span>}
           </p>
         </div>

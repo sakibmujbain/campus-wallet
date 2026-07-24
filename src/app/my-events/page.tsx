@@ -20,7 +20,7 @@ export default async function MyEvents() {
       <div className="eyebrow">Campus Wallet · My collections</div>
       <h1>My events &amp; collections</h1>
       <p className="sub">
-        Batch &amp; club drives you&apos;re on. Pay your share from your spending wallet
+        Batch drives you&apos;re on. Pay your share from your spending wallet
         (balance {money(student.spending)}) — partial payments are fine.
       </p>
 

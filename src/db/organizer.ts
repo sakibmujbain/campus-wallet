@@ -7,7 +7,6 @@ export interface DriveSummary {
   eventId: number;
   name: string;
   batch: string | null;
-  clubName: string | null;
   status: string;
   collected: string;
   target: string;
@@ -19,14 +18,13 @@ export interface DriveSummary {
 /** Drives the viewer runs (admins see all). */
 export async function listMyDrives(appUserId: number, isAdmin: boolean): Promise<DriveSummary[]> {
   const { rows } = await pool.query(
-    `SELECT e.event_id::int AS "eventId", e.name, e.batch, cl.name AS "clubName", e.status,
+    `SELECT e.event_id::int AS "eventId", e.name, e.batch, e.status,
             COALESCE(pr.collected, 0)::text AS collected,
             COALESCE(pr.target, 0)::text    AS target,
             COALESCE(pr.pct_collected, 0)::text AS pct,
             COALESCE(pr.roster_size, 0)::int    AS "rosterSize",
             (SELECT count(*)::int FROM v_event_defaulters d WHERE d.event_id = e.event_id) AS "defaulterCount"
        FROM event e
-       LEFT JOIN club cl ON cl.club_id = e.club_id
        LEFT JOIN v_event_progress pr ON pr.event_id = e.event_id
       WHERE $2 OR e.organizer_user_id = $1
       ORDER BY e.event_id DESC`,
@@ -44,7 +42,7 @@ export interface DriveDetail extends DriveSummary {
 /** A single drive, only if the viewer is its organizer (or an admin). Null otherwise. */
 export async function getDrive(appUserId: number, isAdmin: boolean, eventId: number): Promise<DriveDetail | null> {
   const { rows } = await pool.query(
-    `SELECT e.event_id::int AS "eventId", e.name, e.batch, cl.name AS "clubName", e.status,
+    `SELECT e.event_id::int AS "eventId", e.name, e.batch, e.status,
             e.description, e.deadline::text AS deadline, e.organizer_user_id::int AS "organizerId",
             COALESCE(pr.collected, 0)::text AS collected,
             COALESCE(pr.target, 0)::text    AS target,
@@ -52,7 +50,6 @@ export async function getDrive(appUserId: number, isAdmin: boolean, eventId: num
             COALESCE(pr.roster_size, 0)::int    AS "rosterSize",
             (SELECT count(*)::int FROM v_event_defaulters d WHERE d.event_id = e.event_id) AS "defaulterCount"
        FROM event e
-       LEFT JOIN club cl ON cl.club_id = e.club_id
        LEFT JOIN v_event_progress pr ON pr.event_id = e.event_id
       WHERE e.event_id = $1`,
     [eventId],

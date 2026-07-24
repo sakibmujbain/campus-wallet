@@ -21,7 +21,7 @@ export default async function OrganizerHome() {
         <h1 style={{ fontSize: "1.5rem" }}>My collection drives</h1>
         <Link href="/cr/new" className="btn-primary">+ New drive</Link>
       </div>
-      <p className="sub">Batch &amp; club collections you run. Open a drive to manage its roster, chase defaulters, refund, and settle.</p>
+      <p className="sub">Batch collections you run. Open a drive to manage its roster, chase defaulters, refund, and settle.</p>
 
       {drives.length === 0 ? (
         <div className="card">
@@ -36,7 +36,6 @@ export default async function OrganizerHome() {
                 <h2 style={{ margin: 0 }}>
                   {e.name}{" "}
                   {e.batch && <span className="kind">batch {e.batch}</span>}
-                  {e.clubName && <span className="kind">{e.clubName}</span>}
                 </h2>
                 <span className={`badge ${STATUS_BADGE[e.status] ?? "kind"}`}>{e.status}</span>
               </div>

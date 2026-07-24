@@ -9,7 +9,7 @@ export default async function NewDrive() {
   const scopes = v.grants
     .filter((g) => g.capability === "cr" || g.capability === "club_exec")
     .map((g) => ({ scopeKind: g.scopeKind, scopeRef: g.scopeRef ?? "" }))
-    .filter((s) => (s.scopeKind === "batch" || s.scopeKind === "club") && s.scopeRef !== "");
+    .filter((s) => s.scopeKind === "batch" && s.scopeRef !== "");
 
   return (
     <main style={{ maxWidth: "40rem" }}>
@@ -17,7 +17,7 @@ export default async function NewDrive() {
       <h1>New collection drive</h1>
       <p className="sub">
         Pick a scope you were granted; the roster is auto-populated from that cohort at a flat per-head amount
-        (you can fine-tune it afterward). Batch drives include everyone in the batch; club drives include all members.
+        (you can fine-tune it afterward). A batch drive rosters everyone in that session cohort.
       </p>
       <div className="card">
         <NewDriveForm scopes={scopes} isAdmin={v!.isAdmin} />

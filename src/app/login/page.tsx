@@ -1,7 +1,11 @@
 import { LoginForm } from "./login-form";
 import { CoinDoodle, DoodleScatter } from "@/components/doodle";
+import { listHalls } from "@/db/reference";
 
-export default function LoginPage() {
+export const dynamic = "force-dynamic";
+
+export default async function LoginPage() {
+  const halls = await listHalls();
   return (
     <main style={{ maxWidth: "44rem", position: "relative", minHeight: "82vh", display: "flex", flexDirection: "column", justifyContent: "center" }}>
       <DoodleScatter />
@@ -12,10 +16,10 @@ export default function LoginPage() {
         </div>
         <h1 style={{ fontSize: "2.1rem", lineHeight: 1.1 }}>Your campus, <span className="hl">one wallet</span>.</h1>
         <p className="sub" style={{ marginTop: "0.5rem" }}>
-          Sign in with your university <code>.edu.bd</code> email to unlock zero-fee campus payments, round-up savings, and rewards.
+          Sign in with your university <code>.du.ac.bd</code> email to unlock zero-fee campus payments, round-up savings, and rewards.
         </p>
         <div className="card">
-          <LoginForm />
+          <LoginForm halls={halls} />
         </div>
       </div>
     </main>

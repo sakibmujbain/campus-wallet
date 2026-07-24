@@ -102,18 +102,27 @@ export interface RosterCandidate {
   studentNo: string | null;
 }
 
-/** Students matching a name/student_no query who are NOT already on this drive's
- *  roster — powers the search-and-add typeahead (no raw user-id needed). */
-export async function searchRosterCandidates(eventId: number, q: string): Promise<RosterCandidate[]> {
+export interface CohortFilters {
+  department?: string | null;
+  hallId?: number | null;
+  session?: string | null; // student.batch
+}
+
+/** Students matching a name/student_no query (and optional department/hall/session
+ *  filters) who are NOT already on this drive's roster — powers the typeahead. */
+export async function searchRosterCandidates(eventId: number, q: string, f: CohortFilters = {}): Promise<RosterCandidate[]> {
   const { rows } = await pool.query(
     `SELECT s.student_id::int AS "studentId", au.full_name AS "studentName", s.student_no AS "studentNo"
        FROM student s
        JOIN app_user au ON au.user_id = s.student_id
       WHERE (au.full_name ILIKE '%' || $2 || '%' OR s.student_no ILIKE '%' || $2 || '%')
+        AND ($3::text   IS NULL OR s.department = $3)
+        AND ($4::bigint IS NULL OR s.hall_id   = $4)
+        AND ($5::text   IS NULL OR s.batch     = $5)
         AND NOT EXISTS (SELECT 1 FROM event_roster r WHERE r.event_id = $1 AND r.student_id = s.student_id)
       ORDER BY au.full_name
       LIMIT 10`,
-    [eventId, q],
+    [eventId, q, f.department ?? null, f.hallId ?? null, f.session ?? null],
   );
   return rows as RosterCandidate[];
 }
@@ -139,11 +148,15 @@ export async function addToRoster(actorId: number, eventId: number, studentId: n
   }, { userId: actorId });
 }
 
-/** Bulk-add the drive's own cohort (batch students + club members) at a flat
- *  per-head, skipping anyone already on the roster. Returns how many were added. */
-export async function addCohortToRoster(actorId: number, eventId: number, perHead: string): Promise<number> {
+/** Bulk-add every student matching the given filters (department / hall / session)
+ *  at a flat per-head, skipping anyone already rostered. Returns how many were added.
+ *  At least one filter must be set (enforced in add_filtered_to_roster). */
+export async function addFilteredToRoster(actorId: number, eventId: number, perHead: string, f: CohortFilters): Promise<number> {
   return withTransaction(async (c) => {
-    const { rows } = await c.query(`SELECT add_cohort_to_roster($1,$2,$3::numeric) AS n`, [actorId, eventId, perHead]);
+    const { rows } = await c.query(
+      `SELECT add_filtered_to_roster($1,$2,$3::numeric,$4,$5::bigint,$6) AS n`,
+      [actorId, eventId, perHead, f.department ?? null, f.hallId ?? null, f.session ?? null],
+    );
     return Number(rows[0].n);
   }, { userId: actorId });
 }

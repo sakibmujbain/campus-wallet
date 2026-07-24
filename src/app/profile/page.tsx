@@ -3,7 +3,9 @@ import { getStudent } from "@/lib/session";
 import { getViewer } from "@/lib/viewer";
 import { kycLabel, kycGuidance, money } from "@/lib/format";
 import { listTransactions } from "@/db/wallet";
+import { listHalls, getStudentAcademics } from "@/db/reference";
 import { RoleRequestForm } from "./role-request-form";
+import { AcademicInfo } from "./academic-info";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +18,11 @@ export default async function Profile() {
   const viewer = await getViewer();
   if (!student || !viewer) redirect("/login");
 
-  const txns = await listTransactions(student.appUserId);
+  const [txns, halls, academics] = await Promise.all([
+    listTransactions(student.appUserId),
+    listHalls(),
+    getStudentAcademics(student.appUserId),
+  ]);
   const verified = student.kycStatus === "verified";
 
   return (
@@ -35,6 +41,8 @@ export default async function Profile() {
           <div className="msg info" role="status" style={{ marginTop: "0.75rem" }}>{kycGuidance(student.kycStatus)}</div>
         )}
       </div>
+
+      <AcademicInfo halls={halls} current={academics} />
 
       <div className="card">
         <h2>Your roles</h2>

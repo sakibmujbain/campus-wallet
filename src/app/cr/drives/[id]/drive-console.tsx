@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { money } from "@/lib/format";
 import { newIdem } from "@/lib/idem";
 import { Progress } from "@/components/progress";
+import { DU_DEPARTMENT_GROUPS, DU_SESSIONS } from "@/lib/du";
 
 interface DriveDetail {
   eventId: number; name: string; batch: string | null; clubName: string | null; status: string;
@@ -16,10 +17,12 @@ interface RosterRow {
   expected: string; paid: string; outstanding: string;
 }
 interface Target { accountId: number; currency: string; instKind: string; label: string }
+interface HallOption { hallId: number; name: string }
+interface Filters { department: string; hallId: string; session: string }
 
 const STATUS_BADGE: Record<string, string> = { open: "badge-ok", closed: "badge-warn", settled: "kind", cancelled: "badge-warn" };
 
-export function DriveConsole({ drive, roster, destinations }: { drive: DriveDetail; roster: RosterRow[]; destinations: Target[] }) {
+export function DriveConsole({ drive, roster, destinations, halls }: { drive: DriveDetail; roster: RosterRow[]; destinations: Target[]; halls: HallOption[] }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -146,16 +149,18 @@ export function DriveConsole({ drive, roster, destinations }: { drive: DriveDeta
         {!finalized && (
           <RosterAdd
             eventId={drive.eventId}
-            batch={drive.batch}
-            clubName={drive.clubName}
+            halls={halls}
             busy={busy !== null}
             onAdd={(studentId, expected) => post({ action: "roster_add", studentId, expected }, "add")}
-            onAddCohort={(perHead) =>
-              post({ action: "roster_add_cohort", perHead }, "add-cohort", (d) => {
-                const n = Number(d.added);
-                const who = drive.batch ? `batch ${drive.batch}` : drive.clubName;
-                return n === 0 ? `Everyone in ${who} is already on the roster.` : `Added ${n} student${n === 1 ? "" : "s"} from ${who}.`;
-              })
+            onAddFiltered={(perHead, f) =>
+              post(
+                { action: "roster_add_filtered", perHead, department: f.department || undefined, hallId: f.hallId || undefined, session: f.session || undefined },
+                "add-filtered",
+                (d) => {
+                  const n = Number(d.added);
+                  return n === 0 ? "No new students matched — they may already be on the roster." : `Added ${n} student${n === 1 ? "" : "s"}.`;
+                },
+              )
             }
           />
         )}
@@ -227,42 +232,73 @@ function RefundCell({ max, busy, onRefund }: { max: string; busy: boolean; onRef
 interface Candidate { studentId: number; studentName: string; studentNo: string | null }
 
 function RosterAdd({
-  eventId, batch, clubName, busy, onAdd, onAddCohort,
+  eventId, halls, busy, onAdd, onAddFiltered,
 }: {
-  eventId: number; batch: string | null; clubName: string | null; busy: boolean;
+  eventId: number; halls: HallOption[]; busy: boolean;
   onAdd: (studentId: number, expected: string) => void;
-  onAddCohort: (perHead: string) => void;
+  onAddFiltered: (perHead: string, f: Filters) => void;
 }) {
+  const [department, setDepartment] = useState("");
+  const [hallId, setHallId] = useState("");
+  const [session, setSession] = useState("");
   const [perHead, setPerHead] = useState("");
-  const cohort = batch ? `batch ${batch}` : clubName ?? null;
+  const filters: Filters = { department, hallId, session };
+  const anyFilter = Boolean(department || hallId || session);
+
   return (
-    <div style={{ marginTop: "1.25rem", display: "grid", gap: "1.15rem" }}>
-      {cohort && (
-        <div>
-          <p className="sub" style={{ margin: "0 0 0.5rem", fontSize: "0.82rem" }}>
-            Fill the roster in one go — adds everyone in <strong>{cohort}</strong> who isn&apos;t already listed.
-          </p>
-          <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-end", flexWrap: "wrap" }}>
-            <label style={{ flex: "0 0 8rem" }}>Per head (৳)
-              <input value={perHead} onChange={(e) => setPerHead(e.target.value)} inputMode="decimal" placeholder="500" />
-            </label>
-            <button disabled={busy || !perHead} onClick={() => onAddCohort(perHead)}>Add everyone in {cohort}</button>
-          </div>
+    <div style={{ marginTop: "1.25rem", display: "grid", gap: "1.1rem" }}>
+      <div>
+        <p className="sub" style={{ margin: "0 0 0.6rem", fontSize: "0.82rem" }}>
+          Filter by department, hall, or session — then add everyone matching at once, or search a name below.
+        </p>
+        <div className="roster-filters">
+          <label>Department
+            <select value={department} onChange={(e) => setDepartment(e.target.value)}>
+              <option value="">Any department</option>
+              {DU_DEPARTMENT_GROUPS.map((g) => (
+                <optgroup key={g.faculty} label={g.faculty}>
+                  {g.departments.map((d) => <option key={d} value={d}>{d}</option>)}
+                </optgroup>
+              ))}
+            </select>
+          </label>
+          <label>Hall
+            <select value={hallId} onChange={(e) => setHallId(e.target.value)}>
+              <option value="">Any hall</option>
+              {halls.map((h) => <option key={h.hallId} value={h.hallId}>{h.name}</option>)}
+            </select>
+          </label>
+          <label>Session
+            <select value={session} onChange={(e) => setSession(e.target.value)}>
+              <option value="">Any session</option>
+              {DU_SESSIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </label>
         </div>
-      )}
-      <StudentSearchAdd eventId={eventId} busy={busy} onAdd={onAdd} />
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-end", flexWrap: "wrap", marginTop: "0.75rem" }}>
+          <label style={{ flex: "0 0 8rem" }}>Per head (৳)
+            <input value={perHead} onChange={(e) => setPerHead(e.target.value)} inputMode="decimal" placeholder="500" />
+          </label>
+          <button disabled={busy || !perHead || !anyFilter} title={!anyFilter ? "Pick at least one filter first" : undefined}
+            onClick={() => onAddFiltered(perHead, filters)}>Add all matching</button>
+        </div>
+      </div>
+      <StudentSearchAdd eventId={eventId} busy={busy} filters={filters} onAdd={onAdd} />
     </div>
   );
 }
 
-function StudentSearchAdd({ eventId, busy, onAdd }: { eventId: number; busy: boolean; onAdd: (studentId: number, expected: string) => void }) {
+function StudentSearchAdd({ eventId, busy, filters, onAdd }: {
+  eventId: number; busy: boolean; filters: Filters; onAdd: (studentId: number, expected: string) => void;
+}) {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<Candidate[]>([]);
   const [sel, setSel] = useState<Candidate | null>(null);
   const [expected, setExpected] = useState("");
   const [open, setOpen] = useState(false);
+  const { department, hallId, session } = filters;
 
-  // Debounced search; a settled pick (sel set) stops re-searching. Aborts stale requests.
+  // Debounced search (name/ID + shared filters); a settled pick stops re-searching.
   useEffect(() => {
     if (sel) return;
     const query = q.trim();
@@ -270,13 +306,17 @@ function StudentSearchAdd({ eventId, busy, onAdd }: { eventId: number; busy: boo
     const ctl = new AbortController();
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/cr/drives/${eventId}/students?q=${encodeURIComponent(query)}`, { signal: ctl.signal });
+        const params = new URLSearchParams({ q: query });
+        if (department) params.set("department", department);
+        if (hallId) params.set("hallId", hallId);
+        if (session) params.set("session", session);
+        const res = await fetch(`/api/cr/drives/${eventId}?${params.toString()}`, { signal: ctl.signal });
         const d = await res.json();
         if (d.ok) { setResults(d.candidates as Candidate[]); setOpen(true); }
       } catch { /* aborted or offline */ }
     }, 250);
     return () => { clearTimeout(t); ctl.abort(); };
-  }, [q, sel, eventId]);
+  }, [q, sel, eventId, department, hallId, session]);
 
   function pick(c: Candidate) { setSel(c); setQ(`${c.studentName}${c.studentNo ? ` · ${c.studentNo}` : ""}`); setResults([]); setOpen(false); }
   function reset() { setQ(""); setSel(null); setExpected(""); setResults([]); setOpen(false); }

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { z } from "zod";
 import { getViewer } from "@/lib/viewer";
-import { addCohortToRoster, addToRoster, refundContribution, remindDefaulters, removeFromRoster, searchRosterCandidates, setDriveStatus, settleDrive } from "@/db/organizer";
+import { addFilteredToRoster, addToRoster, refundContribution, remindDefaulters, removeFromRoster, searchRosterCandidates, setDriveStatus, settleDrive } from "@/db/organizer";
 import { mapPgError } from "@/lib/format";
 
 export const runtime = "nodejs";
@@ -10,13 +10,16 @@ export const runtime = "nodejs";
 const amount = z.string().regex(/^\d{1,12}(\.\d{1,4})?$/, "amount must be a decimal with at most 12 whole digits");
 
 const Body = z.object({
-  action: z.enum(["roster_add", "roster_add_cohort", "roster_remove", "status", "refund", "settle", "remind"]),
+  action: z.enum(["roster_add", "roster_add_filtered", "roster_remove", "status", "refund", "settle", "remind"]),
   studentId: z.coerce.number().int().positive().optional(),
   studentAccountId: z.coerce.number().int().positive().optional(),
   destination: z.coerce.number().int().positive().optional(),
   amount: amount.optional(),
   expected: amount.optional(),
   perHead: amount.optional(),
+  department: z.string().optional(),
+  hallId: z.coerce.number().int().positive().optional(),
+  session: z.string().optional(),
   status: z.enum(["open", "closed", "cancelled"]).optional(),
   // A stable client key makes a retried/double-submitted refund replay the same txn
   // instead of issuing a second one (refund_event is idempotent by key).
@@ -32,9 +35,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const eventId = Number((await params).id);
   if (!Number.isInteger(eventId) || eventId <= 0) return NextResponse.json({ ok: false, error: "bad drive id" }, { status: 400 });
 
-  const q = new URL(req.url).searchParams.get("q")?.trim() ?? "";
+  const sp = new URL(req.url).searchParams;
+  const q = sp.get("q")?.trim() ?? "";
   if (q.length < 2) return NextResponse.json({ ok: true, candidates: [] });
-  const candidates = await searchRosterCandidates(eventId, q);
+  const hallParam = sp.get("hallId");
+  const candidates = await searchRosterCandidates(eventId, q, {
+    department: sp.get("department") || null,
+    hallId: hallParam ? Number(hallParam) : null,
+    session: sp.get("session") || null,
+  });
   return NextResponse.json({ ok: true, candidates });
 }
 
@@ -56,9 +65,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         if (!d.studentId || !d.expected) return NextResponse.json({ ok: false, error: "studentId and expected required" }, { status: 400 });
         await addToRoster(v.appUserId, eventId, d.studentId, d.expected);
         break;
-      case "roster_add_cohort": {
+      case "roster_add_filtered": {
         if (!d.perHead) return NextResponse.json({ ok: false, error: "perHead required" }, { status: 400 });
-        const added = await addCohortToRoster(v.appUserId, eventId, d.perHead);
+        const added = await addFilteredToRoster(v.appUserId, eventId, d.perHead, {
+          department: d.department ?? null, hallId: d.hallId ?? null, session: d.session ?? null,
+        });
         return NextResponse.json({ ok: true, added });
       }
       case "roster_remove":

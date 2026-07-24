@@ -3,13 +3,19 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { DU_DEPARTMENT_GROUPS, DU_SESSIONS } from "@/lib/du";
 
-export function LoginForm() {
+interface HallOption { hallId: number; name: string }
+
+export function LoginForm({ halls }: { halls: HallOption[] }) {
   const router = useRouter();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [department, setDepartment] = useState("");
+  const [hallId, setHallId] = useState("");
+  const [session, setSession] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -21,6 +27,10 @@ export function LoginForm() {
       setMsg({ ok: false, text: "Please use your university email (.edu.bd or .du.ac.bd)." });
       return;
     }
+    if (mode === "signup" && (!fullName || !department || !hallId || !session)) {
+      setMsg({ ok: false, text: "Please fill your name, department, hall and session." });
+      return;
+    }
     setBusy(true);
     const supabase = createClient();
     try {
@@ -28,7 +38,7 @@ export function LoginForm() {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { full_name: fullName } },
+          options: { data: { full_name: fullName, department, hall_id: hallId, session } },
         });
         if (error) throw error;
         if (!data.session) {
@@ -63,10 +73,39 @@ export function LoginForm() {
       </div>
 
       {mode === "signup" && (
-        <label>
-          Full name
-          <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Ayesha Rahman" required />
-        </label>
+        <>
+          <label>
+            Full name
+            <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Ayesha Rahman" required />
+          </label>
+          <label>
+            Department
+            <select value={department} onChange={(e) => setDepartment(e.target.value)} required>
+              <option value="" disabled>Select department…</option>
+              {DU_DEPARTMENT_GROUPS.map((g) => (
+                <optgroup key={g.faculty} label={g.faculty}>
+                  {g.departments.map((d) => <option key={d} value={d}>{d}</option>)}
+                </optgroup>
+              ))}
+            </select>
+          </label>
+          <div className="row">
+            <label>
+              Hall
+              <select value={hallId} onChange={(e) => setHallId(e.target.value)} required>
+                <option value="" disabled>Select hall…</option>
+                {halls.map((h) => <option key={h.hallId} value={h.hallId}>{h.name}</option>)}
+              </select>
+            </label>
+            <label>
+              Session
+              <select value={session} onChange={(e) => setSession(e.target.value)} required>
+                <option value="" disabled>Select session…</option>
+                {DU_SESSIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </label>
+          </div>
+        </>
       )}
       <label>
         University email
@@ -87,7 +126,7 @@ export function LoginForm() {
       </button>
       {msg && <div className={`msg ${msg.ok ? "ok" : "err"}`}>{msg.text}</div>}
       <p className="foot" style={{ marginTop: "0.4rem" }}>
-        Only university emails (<code>.edu.bd</code> or <code>.du.ac.bd</code>) can register — that's your e-KYC verification.
+        Only university emails (<code>.edu.bd</code> or <code>.du.ac.bd</code>) can register — that&apos;s your e-KYC verification.
       </p>
     </form>
   );

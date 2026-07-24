@@ -35,8 +35,18 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
   } = await supabase.auth.getUser();
   if (!user || !user.email) return null;
 
-  const fullName = (user.user_metadata?.full_name as string | undefined) ?? "";
-  const { rows } = await pool.query(`SELECT provision_student($1::uuid, $2, $3) AS id`, [user.id, user.email, fullName]);
+  // Academic info entered at signup rides along in the auth user's metadata and is
+  // applied on first provision (ignored for an already-provisioned/seeded student).
+  const md = (user.user_metadata ?? {}) as Record<string, unknown>;
+  const fullName = (md.full_name as string | undefined) ?? "";
+  const department = (md.department as string | undefined) ?? null;
+  const session = (md.session as string | undefined) ?? null;
+  const hallNum = md.hall_id == null || md.hall_id === "" ? NaN : Number(md.hall_id);
+  const hallId = Number.isFinite(hallNum) ? hallNum : null;
+  const { rows } = await pool.query(
+    `SELECT provision_student($1::uuid, $2, $3, $4, $5::bigint, $6) AS id`,
+    [user.id, user.email, fullName, department, hallId, session],
+  );
   const appUserId = Number(rows[0].id);
 
   // Admin bootstrap: ONLY emails on the ADMIN_EMAILS allowlist are granted admin.

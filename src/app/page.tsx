@@ -4,6 +4,9 @@ import { getStudent } from "@/lib/session";
 import { getViewer } from "@/lib/viewer";
 import { unreadCount } from "@/db/notifications";
 import { money, kycLabel, kycGuidance } from "@/lib/format";
+import { Bell } from "@/components/bell";
+import { Amount } from "@/components/amount";
+import { CoinDoodle } from "@/components/doodle";
 
 export const dynamic = "force-dynamic";
 
@@ -19,17 +22,14 @@ export default async function Dashboard() {
     <main>
       <div className="topbar">
         <div>
-          <div className="eyebrow">Campus Wallet</div>
-          <h1 style={{ fontSize: "1.5rem" }}>Welcome, {student.fullName.split(" ")[0]}</h1>
+          <div className="eyebrow"><span className="hl">Campus Wallet</span></div>
+          <h1 style={{ fontSize: "1.65rem" }}>Welcome, {student.fullName.split(" ")[0]}</h1>
         </div>
         <div className="topbar-right">
           <span className={`badge ${verified ? "badge-ok" : "badge-warn"}`}>
             {verified ? "✓ e-KYC verified" : kycLabel(student.kycStatus)}
           </span>
-          <Link href="/notifications" className="btn-ghost" title="Notifications"
-            aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}>
-            🔔{unread > 0 && <span style={{ marginLeft: "0.25rem", color: "var(--accent)", fontWeight: 700 }}>{unread}</span>}
-          </Link>
+          <Bell count={unread} />
           <Link href="/profile" className="btn-ghost">Profile</Link>
           <form action="/auth/signout" method="post">
             <button type="submit" className="btn-ghost">Sign out</button>
@@ -50,11 +50,13 @@ export default async function Dashboard() {
         </Link>
       )}
 
-      <div className="tiles">
-        <div className="tile">
-          <span className="tile-label">Spending wallet</span>
-          <span className="tile-value">{money(student.spending)}</span>
-        </div>
+      <div className="balance doodle-panel">
+        <CoinDoodle style={{ position: "absolute", right: "-8px", top: "-16px", width: "132px", height: "132px", opacity: 0.55, pointerEvents: "none" }} />
+        <span className="balance-label">Spending wallet</span>
+        <div className="balance-value"><Amount value={student.spending} /></div>
+        <span className="tag" style={{ marginTop: "0.75rem" }}>Campus Wallet</span>
+      </div>
+      <div className="tiles" style={{ marginTop: "0.9rem" }}>
         <div className="tile">
           <span className="tile-label">Tuition Shield savings</span>
           <span className="tile-value">{money(student.savings)}</span>

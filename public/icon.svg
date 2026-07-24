@@ -1,5 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Campus Wallet">
-  <rect width="512" height="512" rx="112" fill="#0c8577"/>
-  <path d="M112 176a40 40 0 0 1 40-40h208a24 24 0 0 1 0 48H160a8 8 0 0 0 0 16h216a40 40 0 0 1 40 40v112a40 40 0 0 1-40 40H152a40 40 0 0 1-40-40V176z" fill="#fff"/>
-  <circle cx="356" cy="304" r="26" fill="#0c8577"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72">
+  <path d="M33 12 C18 12 9 24 10 38 C11 52 24 61 39 59 C53 57 62 44 60 30 C58 17 47 11 33 12 Z" fill="#d8f24a"/>
+  <path d="M31 9 C16 10 7 22 8 36 C9 51 22 60 37 58 C51 56 61 43 59 29 C57 15 45 8 31 9 Z" fill="none" stroke="#1c1b15" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M31 17 C20 18 14 27 15 37 C16 48 25 54 35 52 C45 50 51 41 50 31 C49 21 41 16 31 17 Z" fill="none" stroke="#1c1b15" stroke-width="1.8" opacity="0.55"/>
+  <path d="M27 27 h11 M30.5 27 v15 M25 34.5 h13" fill="none" stroke="#1c1b15" stroke-width="3.2" stroke-linecap="round"/>
 </svg>

@@ -1,5 +1,10 @@
-import Link from "next/link";
 import { requireViewer } from "@/lib/viewer";
+import { ConsoleNav } from "@/components/console-nav";
+
+const LINKS = [
+  { href: "/cr", label: "My drives" },
+  { href: "/cr/new", label: "+ New drive" },
+];
 
 export default async function OrganizerLayout({ children }: { children: React.ReactNode }) {
   await requireViewer("cr"); // gate: admins pass too (admin implies every capability)
@@ -7,11 +12,7 @@ export default async function OrganizerLayout({ children }: { children: React.Re
     <>
       <div className="console-bar console-cr">
         <span className="console-title">📣 Organizer console</span>
-        <nav className="console-nav">
-          <Link href="/cr">My drives</Link>
-          <Link href="/cr/new">+ New drive</Link>
-          <Link href="/">← App</Link>
-        </nav>
+        <ConsoleNav links={LINKS} />
       </div>
       {children}
     </>

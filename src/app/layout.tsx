@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Inter, Space_Mono } from "next/font/google";
 import { RegisterSW } from "./register-sw";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { AppBar } from "@/components/app-bar";
 import "./globals.css";
 
 // Editorial display (headings + the balance), clean body workhorse, on-brand mono.
@@ -35,8 +35,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}` }} />
       </head>
       <body>
+        <AppBar />
         {children}
-        <ThemeToggle />
         <RegisterSW />
       </body>
     </html>

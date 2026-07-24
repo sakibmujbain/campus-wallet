@@ -22,7 +22,7 @@ export default async function Dashboard() {
     <main>
       <div className="topbar">
         <div>
-          <div className="eyebrow"><span className="hl">Campus Wallet</span></div>
+          <div className="eyebrow">Dashboard</div>
           <h1 style={{ fontSize: "1.65rem" }}>Welcome, {student.fullName.split(" ")[0]}</h1>
         </div>
         <div className="topbar-right">

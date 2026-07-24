@@ -98,7 +98,7 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
-main { max-width: 46rem; margin: 0 auto; padding: 2.75rem 1.25rem 5rem; }
+main { max-width: 46rem; margin: 0 auto; padding: 1.75rem 1.25rem 5rem; }
 
 h1, h2, h3, .display { font-family: var(--font-display); letter-spacing: -0.02em; }
 h1 { font-size: 1.85rem; font-weight: 700; margin: 0 0 0.25rem; line-height: 1.15; }
@@ -144,27 +144,28 @@ select:focus, input:focus { outline: none; border-color: var(--accent-deep);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 55%, transparent); border-radius: 4px; }
 button:focus:not(:focus-visible) { outline: none; box-shadow: none; }
 
-/* ── buttons: tactile highlighter "sticker" (ink text on the marker) ─────── */
+/* ── buttons: refined highlighter fill, ink text, soft depth ─────────────── */
 button, .btn-primary {
   font: inherit; font-weight: 600; font-family: var(--sans); cursor: pointer;
-  padding: 0.6rem 1.1rem; border-radius: var(--r-md); line-height: 1.2;
-  border: 1.5px solid var(--ink); background: var(--accent); color: var(--on-accent);
-  box-shadow: 0 3px 0 var(--ink);
-  transition: transform var(--dur-fast) var(--spring), box-shadow var(--dur-fast) var(--spring), background var(--dur-fast);
+  padding: 0.58rem 1.15rem; border-radius: var(--r-md); line-height: 1.2;
+  border: 1px solid var(--accent-strong); background: var(--accent); color: var(--on-accent);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--dur-fast) var(--ease-out-quick), box-shadow var(--dur-fast) var(--ease-out-quick), background var(--dur-fast);
 }
 .btn-primary { display: inline-block; text-decoration: none; font-size: 0.9rem; }
-button:hover, .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 0 var(--ink); background: var(--accent-strong); }
-button:active, .btn-primary:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--ink); }
-button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: 0 3px 0 var(--ink); }
+button:hover, .btn-primary:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); background: var(--accent-strong); }
+button:active, .btn-primary:active { transform: translateY(0); box-shadow: var(--shadow-xs); }
+button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: var(--shadow-xs); }
 
-/* secondary / ghost — inked outline, paper fill */
+/* secondary / ghost — soft outline, paper fill (used as links too → set radius +
+   no underline explicitly, since <a> doesn't pick up the <button> base rule) */
 .btn-ghost {
-  background: var(--surface); color: var(--ink); border: 1.5px solid var(--border-strong);
-  box-shadow: none; font-size: 0.85rem; padding: 0.5rem 0.85rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--border-strong); border-radius: var(--r-md);
+  box-shadow: var(--shadow-xs); font-size: 0.85rem; font-weight: 600; line-height: 1.2; padding: 0.5rem 0.9rem; text-decoration: none;
 }
-.btn-ghost:hover { transform: translateY(-1px); box-shadow: var(--shadow-xs);
-  background: var(--accent-weakest); border-color: var(--ink); }
-.btn-ghost:active { transform: translateY(0); }
+.btn-ghost:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); background: var(--surface-2); border-color: var(--border-strong); }
+.btn-ghost:active { transform: translateY(0); box-shadow: var(--shadow-xs); }
 
 .icon-btn { min-height: 1.9rem; min-width: 1.9rem; padding: 0.3rem 0.55rem; line-height: 1; font-size: 0.85rem; }
 
@@ -196,10 +197,10 @@ td.num, th.num { text-align: right; font-family: var(--mono); }
   padding: 0.3rem 0.6rem; border-radius: var(--r-full); white-space: nowrap; }
 .badge-ok   { background: var(--good-weak); color: var(--good); }
 .badge-warn { background: var(--warn-weak); color: var(--warn); text-transform: capitalize; }
-/* the boxed-logotype tag: ink on highlighter — reserved for brand/active state */
-.tag { display: inline-block; font-family: var(--mono); font-size: 0.66rem; font-weight: 700;
-  letter-spacing: 0.06em; text-transform: uppercase; padding: 0.28rem 0.6rem; border-radius: var(--r-sm);
-  background: var(--accent); color: var(--on-accent); border: 1.5px solid var(--ink); box-shadow: 0 2px 0 var(--ink); }
+/* highlighter brand tag — ink on the marker, soft pill (brand/active only) */
+.tag { display: inline-block; font-family: var(--mono); font-size: 0.62rem; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase; padding: 0.3rem 0.65rem; border-radius: var(--r-full);
+  background: var(--accent); color: var(--on-accent); }
 
 /* ── messages ───────────────────────────────────────────────────────────── */
 .msg { font-size: 0.88rem; padding: 0.65rem 0.8rem; border-radius: var(--r-md); margin-top: 0.2rem;
@@ -219,10 +220,10 @@ td.num, th.num { text-align: right; font-family: var(--mono); }
 .tile-label { font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
 .tile-value { font-family: var(--font-display); font-size: 1.55rem; font-weight: 700; letter-spacing: -0.02em; }
 
-/* the boxed-logotype hero: big display balance on a highlighter-edged card */
+/* hero balance: big display balance on a soft card with a highlighter top accent */
 .balance { position: relative; overflow: hidden; background: var(--surface);
-  border: 1.5px solid var(--ink); border-radius: var(--r-xl); padding: 1.5rem 1.6rem;
-  box-shadow: 0 5px 0 var(--ink), var(--shadow-md); margin-top: 1.5rem; }
+  border: 1px solid var(--border); border-top: 3px solid var(--accent); border-radius: var(--r-xl);
+  padding: 1.5rem 1.6rem; box-shadow: var(--shadow-md); margin-top: 1.5rem; }
 .balance-label { font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
 .balance-value { font-family: var(--font-display); font-weight: 700; font-size: clamp(2.4rem, 9vw, 3.4rem);
   letter-spacing: -0.03em; line-height: 1.05; margin-top: 0.25rem; }
@@ -241,10 +242,10 @@ a.feature:hover { transform: translateY(-4px); border-color: var(--ink); box-sha
 .feature-desc { font-size: 0.85rem; color: var(--muted); }
 
 .dues-nudge { display: block; background: var(--accent-weak);
-  border: 1.5px solid var(--ink); color: var(--ink); box-shadow: 0 3px 0 var(--ink);
+  border: 1px solid var(--accent-strong); color: var(--ink); box-shadow: var(--shadow-xs);
   border-radius: var(--r-md); padding: 0.85rem 1rem; margin: 1.4rem 0 0; text-decoration: none; font-size: 0.92rem;
-  transition: transform var(--dur-fast) var(--spring), box-shadow var(--dur-fast) var(--spring); }
-.dues-nudge:hover { transform: translateY(-2px); box-shadow: 0 5px 0 var(--ink); }
+  transition: transform var(--dur-fast) var(--ease-out-quick), box-shadow var(--dur-fast) var(--ease-out-quick); }
+.dues-nudge:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
 .dues-nudge strong { font-family: var(--font-display); }
 
 /* ── auth + dashboard topbar ────────────────────────────────────────────── */
@@ -257,7 +258,7 @@ a.feature:hover { transform: translateY(-4px); border-color: var(--ink); box-sha
 .tab { flex: 1; background: transparent; color: var(--muted); border: none; box-shadow: none;
   font-weight: 600; font-size: 0.9rem; padding: 0.5rem; border-radius: var(--r-full); }
 .tab:hover { transform: none; box-shadow: none; background: transparent; color: var(--ink); }
-.tab.active { background: var(--accent); color: var(--on-accent); border: 1.5px solid var(--ink); box-shadow: 0 2px 0 var(--ink); }
+.tab.active { background: var(--accent); color: var(--on-accent); box-shadow: var(--shadow-xs); }
 .tab.active:hover { transform: none; }
 
 /* ── progress ───────────────────────────────────────────────────────────── */
@@ -268,30 +269,47 @@ a.feature:hover { transform: translateY(-4px); border-color: var(--ink); box-sha
   transition: width var(--dur-slow) var(--ease-out-quick); }
 
 /* ── role consoles ──────────────────────────────────────────────────────── */
-.console-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
-  padding: 0.7rem 1.25rem; background: var(--surface); border-bottom: 1.5px solid var(--ink);
-  position: sticky; top: 0; z-index: 10; box-shadow: var(--shadow-xs); }
+.console-bar { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem 1rem; flex-wrap: wrap;
+  padding: 0.6rem 1.25rem; background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: var(--shadow-xs); }
 .console-title { font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; color: var(--ink); }
-.console-nav { display: flex; gap: 0.9rem; font-size: 0.85rem; }
-.console-nav a { color: var(--muted); text-decoration: none; font-weight: 500; }
-.console-nav a:hover { color: var(--ink); text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 3px; text-underline-offset: 4px; }
+.console-nav { display: flex; gap: 0.2rem; font-size: 0.85rem; flex-wrap: wrap; }
+.console-nav a { color: var(--secondary); text-decoration: none; font-weight: 500; padding: 0.4rem 0.75rem; border-radius: var(--r-full);
+  transition: background var(--dur-fast) var(--ease-out-quick), color var(--dur-fast); }
+.console-nav a:hover { background: var(--accent-weak); color: var(--ink); }
+.console-nav a[aria-current="page"] { background: var(--accent); color: var(--on-accent); }
 
-/* ── theme toggle (fixed, tactile sticker) ─────────────────────────────── */
+/* ── global app bar (logo → home · back · theme) ────────────────────────── */
+.appbar { position: sticky; top: 0; z-index: 40; display: flex; align-items: center; justify-content: space-between;
+  gap: 0.75rem; padding: 0.55rem 1.1rem; background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: saturate(1.2) blur(8px); -webkit-backdrop-filter: saturate(1.2) blur(8px);
+  border-bottom: 1px solid var(--border); }
+.appbar-left { display: flex; flex-direction: column; align-items: flex-start; gap: 0.45rem; }
+.appbar-logo { display: inline-flex; align-items: center; gap: 0.45rem; text-decoration: none; color: var(--ink);
+  font-family: var(--font-display); font-weight: 700; font-size: 1.02rem; letter-spacing: -0.01em; }
+.appbar-logo:hover .appbar-word { background-size: 100% 0.5em; }
+.appbar-word { background-image: linear-gradient(var(--accent), var(--accent)); background-repeat: no-repeat;
+  background-position: 0 90%; background-size: 100% 0; transition: background-size var(--dur-base) var(--ease-out-quick); padding: 0 0.05em; }
+/* sits UNDER the wordmark as a subtle chip — its own padded tap area, clear of the logo */
+.appbar-back { background: none; border: none; box-shadow: none; color: var(--muted); font-family: var(--sans);
+  font-size: 0.78rem; font-weight: 500; padding: 0.28rem 0.6rem; margin-left: 1.55rem; border-radius: var(--r-full); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 0.3rem; transition: background var(--dur-fast) var(--ease-out-quick), color var(--dur-fast); }
+.appbar-back:hover { color: var(--ink); background: var(--surface-2); box-shadow: none; transform: none; }
+
+/* ── theme toggle (inline, lives in the app bar) ────────────────────────── */
 .theme-toggle {
-  position: fixed; bottom: 1.1rem; right: 1.1rem; z-index: 50;
-  width: 2.6rem; height: 2.6rem; padding: 0; border-radius: var(--r-full);
-  display: inline-flex; align-items: center; justify-content: center; font-size: 1.05rem;
-  background: var(--surface); color: var(--ink); border: 1.5px solid var(--ink); box-shadow: 0 3px 0 var(--ink);
+  width: 2.25rem; height: 2.25rem; padding: 0; border-radius: var(--r-full);
+  display: inline-flex; align-items: center; justify-content: center; font-size: 1rem;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--border-strong); box-shadow: var(--shadow-xs);
 }
-.theme-toggle:hover { transform: translateY(-2px); box-shadow: 0 5px 0 var(--ink); background: var(--accent); }
-.theme-toggle:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--ink); }
+.theme-toggle:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); background: var(--surface-2); }
+.theme-toggle:active { transform: translateY(0); }
 
 /* ── notification bell ──────────────────────────────────────────────────── */
 .bell { position: relative; display: inline-flex; align-items: center; justify-content: center;
-  width: 2.25rem; height: 2.25rem; border-radius: var(--r-full); border: 1.5px solid var(--border-strong);
-  background: var(--surface); color: var(--ink); text-decoration: none; font-size: 1.05rem;
-  transition: transform var(--dur-fast) var(--spring), border-color var(--dur-fast); }
-.bell:hover { transform: translateY(-1px); border-color: var(--ink); }
+  width: 2.25rem; height: 2.25rem; border-radius: var(--r-full); border: 1px solid var(--border-strong);
+  background: var(--surface); color: var(--ink); text-decoration: none; font-size: 1.05rem; box-shadow: var(--shadow-xs);
+  transition: transform var(--dur-fast) var(--ease-out-quick), box-shadow var(--dur-fast); }
+.bell:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
 .bell-badge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px;
   display: inline-flex; align-items: center; justify-content: center; border-radius: var(--r-full);
   background: var(--bad); color: #fff; font-family: var(--mono); font-size: 0.62rem; font-weight: 700;

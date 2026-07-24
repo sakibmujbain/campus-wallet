@@ -10,6 +10,7 @@ export function NewDriveForm({ scopes, isAdmin }: { scopes: Scope[]; isAdmin: bo
   // Options: the granted scopes, plus a "custom" entry for admins (who cover every scope).
   const CUSTOM = "__custom__";
   const options = scopes.map((s, i) => ({ value: String(i), label: `${s.scopeKind}: ${s.scopeRef}`, ...s }));
+  const hasGrantedScopes = options.length > 0;
   const [sel, setSel] = useState(options[0]?.value ?? (isAdmin ? CUSTOM : ""));
 
   const [name, setName] = useState("");
@@ -23,7 +24,9 @@ export function NewDriveForm({ scopes, isAdmin }: { scopes: Scope[]; isAdmin: bo
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const usingCustom = sel === CUSTOM;
+  // With no granted scopes (e.g. an admin), skip the redundant one-item dropdown and
+  // let them choose batch/club directly.
+  const usingCustom = !hasGrantedScopes || sel === CUSTOM;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -65,21 +68,23 @@ export function NewDriveForm({ scopes, isAdmin }: { scopes: Scope[]; isAdmin: bo
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="CSE Batch Picnic" required />
       </label>
 
-      <label>
-        Scope (who is on the roster)
-        <select value={sel} onChange={(e) => setSel(e.target.value)}>
-          {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          {isAdmin && <option value={CUSTOM}>Custom scope…</option>}
-        </select>
-      </label>
+      {hasGrantedScopes && (
+        <label>
+          Scope (who is on the roster)
+          <select value={sel} onChange={(e) => setSel(e.target.value)}>
+            {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            {isAdmin && <option value={CUSTOM}>Custom scope…</option>}
+          </select>
+        </label>
+      )}
 
       {usingCustom && (
         <div className="row">
           <label>
-            Scope kind
+            Roster scope
             <select value={customKind} onChange={(e) => setCustomKind(e.target.value)}>
-              <option value="batch">batch</option>
-              <option value="club">club</option>
+              <option value="batch">Batch (a whole year group)</option>
+              <option value="club">Club (all members)</option>
             </select>
           </label>
           <label>

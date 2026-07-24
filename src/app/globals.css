@@ -146,6 +146,17 @@ select, input {
 }
 select:focus, input:focus { outline: none; border-color: var(--accent-deep);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 45%, transparent); }
+
+/* search-and-add typeahead dropdown (drive roster) */
+.typeahead { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 30; margin: 0;
+  padding: 0.25rem; list-style: none; background: var(--surface); border: 1px solid var(--border-strong);
+  border-radius: var(--r-md); box-shadow: var(--shadow-lg); max-height: 240px; overflow-y: auto; }
+.typeahead li { margin: 0; }
+.typeahead li button { width: 100%; text-align: left; background: none; border: none; box-shadow: none;
+  color: var(--ink); font: inherit; font-weight: 500; cursor: pointer; padding: 0.45rem 0.55rem;
+  border-radius: var(--r-sm); display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; }
+.typeahead li button:hover { background: var(--surface-2); box-shadow: none; transform: none; }
+.typeahead-empty { display: block; padding: 0.45rem 0.55rem; color: var(--muted); font-size: 0.85rem; }
 ::placeholder { color: var(--muted); }
 
 /* global focus ring — visible for keyboard, clean for mouse */

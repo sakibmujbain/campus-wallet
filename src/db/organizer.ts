@@ -96,6 +96,28 @@ export async function listRoster(eventId: number): Promise<RosterRow[]> {
   return rows as RosterRow[];
 }
 
+export interface RosterCandidate {
+  studentId: number;
+  studentName: string;
+  studentNo: string | null;
+}
+
+/** Students matching a name/student_no query who are NOT already on this drive's
+ *  roster — powers the search-and-add typeahead (no raw user-id needed). */
+export async function searchRosterCandidates(eventId: number, q: string): Promise<RosterCandidate[]> {
+  const { rows } = await pool.query(
+    `SELECT s.student_id::int AS "studentId", au.full_name AS "studentName", s.student_no AS "studentNo"
+       FROM student s
+       JOIN app_user au ON au.user_id = s.student_id
+      WHERE (au.full_name ILIKE '%' || $2 || '%' OR s.student_no ILIKE '%' || $2 || '%')
+        AND NOT EXISTS (SELECT 1 FROM event_roster r WHERE r.event_id = $1 AND r.student_id = s.student_id)
+      ORDER BY au.full_name
+      LIMIT 10`,
+    [eventId, q],
+  );
+  return rows as RosterCandidate[];
+}
+
 // ── Mutations (all run through withTransaction({userId}) for audit + GUC) ────
 
 export async function createDrive(
@@ -114,6 +136,15 @@ export async function createDrive(
 export async function addToRoster(actorId: number, eventId: number, studentId: number, expected: string): Promise<void> {
   await withTransaction(async (c) => {
     await c.query(`SELECT add_to_roster($1,$2,$3,$4::numeric)`, [actorId, eventId, studentId, expected]);
+  }, { userId: actorId });
+}
+
+/** Bulk-add the drive's own cohort (batch students + club members) at a flat
+ *  per-head, skipping anyone already on the roster. Returns how many were added. */
+export async function addCohortToRoster(actorId: number, eventId: number, perHead: string): Promise<number> {
+  return withTransaction(async (c) => {
+    const { rows } = await c.query(`SELECT add_cohort_to_roster($1,$2,$3::numeric) AS n`, [actorId, eventId, perHead]);
+    return Number(rows[0].n);
   }, { userId: actorId });
 }
 

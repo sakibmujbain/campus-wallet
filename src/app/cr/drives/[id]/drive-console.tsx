@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { money } from "@/lib/format";
 import { newIdem } from "@/lib/idem";
 import { Progress } from "@/components/progress";
@@ -143,7 +143,22 @@ export function DriveConsole({ drive, roster, destinations }: { drive: DriveDeta
             </tbody>
           </table>
         </div>
-        {!finalized && <AddToRoster busy={busy !== null} onAdd={(studentId, expected) => post({ action: "roster_add", studentId, expected }, "add")} />}
+        {!finalized && (
+          <RosterAdd
+            eventId={drive.eventId}
+            batch={drive.batch}
+            clubName={drive.clubName}
+            busy={busy !== null}
+            onAdd={(studentId, expected) => post({ action: "roster_add", studentId, expected }, "add")}
+            onAddCohort={(perHead) =>
+              post({ action: "roster_add_cohort", perHead }, "add-cohort", (d) => {
+                const n = Number(d.added);
+                const who = drive.batch ? `batch ${drive.batch}` : drive.clubName;
+                return n === 0 ? `Everyone in ${who} is already on the roster.` : `Added ${n} student${n === 1 ? "" : "s"} from ${who}.`;
+              })
+            }
+          />
+        )}
       </div>
 
       {/* Settle */}
@@ -209,19 +224,96 @@ function RefundCell({ max, busy, onRefund }: { max: string; busy: boolean; onRef
   );
 }
 
-function AddToRoster({ busy, onAdd }: { busy: boolean; onAdd: (studentId: number, expected: string) => void }) {
-  const [studentId, setStudentId] = useState("");
-  const [expected, setExpected] = useState("");
+interface Candidate { studentId: number; studentName: string; studentNo: string | null }
+
+function RosterAdd({
+  eventId, batch, clubName, busy, onAdd, onAddCohort,
+}: {
+  eventId: number; batch: string | null; clubName: string | null; busy: boolean;
+  onAdd: (studentId: number, expected: string) => void;
+  onAddCohort: (perHead: string) => void;
+}) {
+  const [perHead, setPerHead] = useState("");
+  const cohort = batch ? `batch ${batch}` : clubName ?? null;
   return (
-    <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-end", marginTop: "1rem", flexWrap: "wrap" }}>
-      <label style={{ flex: "0 0 8rem" }}>Add student (user ID)
-        <input value={studentId} onChange={(e) => setStudentId(e.target.value)} inputMode="numeric" placeholder="e.g. 4" />
+    <div style={{ marginTop: "1.25rem", display: "grid", gap: "1.15rem" }}>
+      {cohort && (
+        <div>
+          <p className="sub" style={{ margin: "0 0 0.5rem", fontSize: "0.82rem" }}>
+            Fill the roster in one go — adds everyone in <strong>{cohort}</strong> who isn&apos;t already listed.
+          </p>
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-end", flexWrap: "wrap" }}>
+            <label style={{ flex: "0 0 8rem" }}>Per head (৳)
+              <input value={perHead} onChange={(e) => setPerHead(e.target.value)} inputMode="decimal" placeholder="500" />
+            </label>
+            <button disabled={busy || !perHead} onClick={() => onAddCohort(perHead)}>Add everyone in {cohort}</button>
+          </div>
+        </div>
+      )}
+      <StudentSearchAdd eventId={eventId} busy={busy} onAdd={onAdd} />
+    </div>
+  );
+}
+
+function StudentSearchAdd({ eventId, busy, onAdd }: { eventId: number; busy: boolean; onAdd: (studentId: number, expected: string) => void }) {
+  const [q, setQ] = useState("");
+  const [results, setResults] = useState<Candidate[]>([]);
+  const [sel, setSel] = useState<Candidate | null>(null);
+  const [expected, setExpected] = useState("");
+  const [open, setOpen] = useState(false);
+
+  // Debounced search; a settled pick (sel set) stops re-searching. Aborts stale requests.
+  useEffect(() => {
+    if (sel) return;
+    const query = q.trim();
+    if (query.length < 2) { setResults([]); setOpen(false); return; }
+    const ctl = new AbortController();
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/cr/drives/${eventId}/students?q=${encodeURIComponent(query)}`, { signal: ctl.signal });
+        const d = await res.json();
+        if (d.ok) { setResults(d.candidates as Candidate[]); setOpen(true); }
+      } catch { /* aborted or offline */ }
+    }, 250);
+    return () => { clearTimeout(t); ctl.abort(); };
+  }, [q, sel, eventId]);
+
+  function pick(c: Candidate) { setSel(c); setQ(`${c.studentName}${c.studentNo ? ` · ${c.studentNo}` : ""}`); setResults([]); setOpen(false); }
+  function reset() { setQ(""); setSel(null); setExpected(""); setResults([]); setOpen(false); }
+
+  return (
+    <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-end", flexWrap: "wrap" }}>
+      <label style={{ flex: "1 1 15rem", position: "relative" }}>Add a student (search name or ID)
+        <input
+          value={q}
+          onChange={(e) => { setQ(e.target.value); setSel(null); }}
+          onFocus={() => { if (results.length) setOpen(true); }}
+          onBlur={() => window.setTimeout(() => setOpen(false), 150)}
+          placeholder="Type a name or student no…"
+          autoComplete="off"
+        />
+        {open && results.length > 0 && (
+          <ul className="typeahead">
+            {results.map((c) => (
+              <li key={c.studentId}>
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => pick(c)}>
+                  <span>{c.studentName}</span><span className="kind">{c.studentNo ?? "—"}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {open && results.length === 0 && !sel && q.trim().length >= 2 && (
+          <ul className="typeahead">
+            <li><span className="typeahead-empty">No match — or already on the roster.</span></li>
+          </ul>
+        )}
       </label>
       <label style={{ flex: "0 0 8rem" }}>Expected (৳)
         <input value={expected} onChange={(e) => setExpected(e.target.value)} inputMode="decimal" placeholder="500" />
       </label>
-      <button className="btn-ghost" disabled={busy || !studentId || !expected}
-        onClick={() => onAdd(Number(studentId), expected)}>Add / update</button>
+      <button className="btn-ghost" disabled={busy || !sel || !expected}
+        onClick={() => { if (sel && expected) { onAdd(sel.studentId, expected); reset(); } }}>Add</button>
     </div>
   );
 }

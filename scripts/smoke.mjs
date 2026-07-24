@@ -395,6 +395,17 @@ try {
   const remind2 = (await client.query(`SELECT remind_defaulters($1,$2) AS n`, [targetUid, drive])).rows[0].n;
   if (remind2 === 0) ok("remind_defaulters is idempotent while reminders stay unread (0 new)"); else fail(`second remind not idempotent: ${remind2}`);
 
+  // A student who paid then was FULLY REFUNDED (net 0) must be removable — the guard
+  // is on net contribution, not row-existence. (Pay 50 then refund 50 nets the pool to 0.)
+  const eve = await mkStudent("Eve", 5);
+  await client.query(`SELECT make_transfer($1,$2,100.00,'BDT',gen_random_uuid(),'fund')`, [treasury, eve.spend]);
+  await client.query(`SELECT add_to_roster($1,$2,$3,300)`, [targetUid, drive, eve.uid]);
+  await client.query(`SELECT pay_event($1,$2,50.00,gen_random_uuid())`, [eve.spend, drive]);
+  await client.query(`SELECT refund_event($1,$2,50.00,gen_random_uuid())`, [drive, eve.spend]);
+  await client.query(`SELECT remove_from_roster($1,$2,$3)`, [targetUid, drive, eve.uid]);
+  if ((await client.query(`SELECT count(*)::int c FROM event_roster WHERE event_id=$1 AND student_id=$2`, [drive, eve.uid])).rows[0].c === 0)
+    ok("a fully-refunded student (net 0) is removable from the roster"); else fail("net-0 refunded student could not be removed");
+
   // Settlement destination MUST be institutional — never a personal wallet.
   await expectError(client.query(`SELECT settle_event($1,$2,$3,gen_random_uuid())`, [targetUid, drive, alice.spend]),
     "must be an institutional wallet", "settle to a student wallet blocked");

@@ -90,8 +90,10 @@
 /* ── base ───────────────────────────────────────────────────────────────── */
 * { box-sizing: border-box; }
 html, body { padding: 0; margin: 0; }
+/* Page background lives on <html> (propagates to the canvas) so the z-index:-1
+   .margin-doodles backdrop always paints above it — never occluded by a body bg. */
+html { background: var(--bg); }
 body {
-  background: var(--bg);
   color: var(--ink);
   font-family: var(--sans);
   line-height: 1.55;
@@ -103,6 +105,13 @@ main { max-width: 46rem; margin: 0 auto; padding: 1.75rem 1.25rem 5rem; }
 h1, h2, h3, .display { font-family: var(--font-display); letter-spacing: -0.02em; }
 h1 { font-size: 1.85rem; font-weight: 700; margin: 0 0 0.25rem; line-height: 1.15; }
 .sub { color: var(--muted); margin: 0 0 2rem; font-size: 0.95rem; }
+/* quiet "verified via .edu.bd" caption — a soft check chip + highlighter on the
+   domain. Plain prose flow (NOT flex) so the sentence keeps normal word spacing and
+   wraps cleanly on a phone, with the chip pinned inline to the first line. */
+.verify-note { margin: 0.15rem 0 2rem; font-size: 0.85rem; color: var(--muted); }
+.verify-check { display: inline-grid; place-items: center; width: 1.1rem; height: 1.1rem;
+  border-radius: 50%; background: var(--good-weak); color: var(--good); font-size: 0.68rem; font-weight: 700;
+  vertical-align: -0.18em; margin-right: 0.3rem; }
 
 .eyebrow {
   font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.14em;
@@ -197,10 +206,12 @@ td.num, th.num { text-align: right; font-family: var(--mono); }
   padding: 0.3rem 0.6rem; border-radius: var(--r-full); white-space: nowrap; }
 .badge-ok   { background: var(--good-weak); color: var(--good); }
 .badge-warn { background: var(--warn-weak); color: var(--warn); text-transform: capitalize; }
-/* highlighter brand tag — ink on the marker, soft pill (brand/active only) */
-.tag { display: inline-block; font-family: var(--mono); font-size: 0.62rem; font-weight: 700;
-  letter-spacing: 0.08em; text-transform: uppercase; padding: 0.3rem 0.65rem; border-radius: var(--r-full);
-  background: var(--accent); color: var(--on-accent); }
+/* hero card wordmark — a subtle brand marque (NOT a button): lime dot + mono caps */
+.balance-brand { display: inline-flex; align-items: center; gap: 0.5rem; margin-top: 1rem;
+  font-family: var(--mono); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--secondary); }
+.balance-brand::before { content: ""; width: 0.5rem; height: 0.5rem; border-radius: 50%; flex: none;
+  background: var(--accent); box-shadow: 0 0 0 3px var(--accent-weak); }
 
 /* ── messages ───────────────────────────────────────────────────────────── */
 .msg { font-size: 0.88rem; padding: 0.65rem 0.8rem; border-radius: var(--r-md); margin-top: 0.2rem;
@@ -337,6 +348,13 @@ a.feature:hover { transform: translateY(-4px); border-color: var(--ink); box-sha
 /* doodle backdrop — a decorative ink/highlighter panel; brand slots ONLY */
 .doodle-panel { position: relative; overflow: hidden; }
 .doodle-panel > .doodle { position: absolute; pointer-events: none; opacity: 0.9; }
+
+/* scattered doodles in the empty page gutters — a static backdrop framing the
+   reading column on wide screens (mirrors the brand slide). Hidden where there's
+   no gutter to fill, and it never intercepts input. */
+.margin-doodles { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: -1; }
+.margin-doodles svg { position: absolute; }
+@media (max-width: 1024px) { .margin-doodles { display: none; } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }

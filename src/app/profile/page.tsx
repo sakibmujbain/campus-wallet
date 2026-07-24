@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getStudent } from "@/lib/session";
 import { getViewer } from "@/lib/viewer";
@@ -94,8 +93,6 @@ export default async function Profile() {
       </div>
 
       <div className="foot" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-        <Link href="/">← Dashboard</Link>
-        <span>·</span>
         <form action="/auth/signout" method="post" style={{ display: "inline" }}>
           <button className="btn-ghost" type="submit">Sign out</button>
         </form>

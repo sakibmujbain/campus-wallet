@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getStudent } from "@/lib/session";
 import { listMyEvents } from "@/db/myevents";
@@ -32,10 +31,6 @@ export default async function MyEvents() {
       )}
 
       <MyEventsList events={events} />
-
-      <p className="foot">
-        <Link href="/">← Dashboard</Link> · <Link href="/events">All events &amp; defaulters</Link>
-      </p>
     </main>
   );
 }

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { requireViewer } from "@/lib/viewer";
 import { NewDriveForm } from "./new-drive-form";
 
@@ -23,7 +22,6 @@ export default async function NewDrive() {
       <div className="card">
         <NewDriveForm scopes={scopes} isAdmin={v!.isAdmin} />
       </div>
-      <p className="foot"><Link href="/cr">← My drives</Link></p>
     </main>
   );
 }

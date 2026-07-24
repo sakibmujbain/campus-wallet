@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getStudent } from "@/lib/session";
 import { money } from "@/lib/format";
@@ -21,7 +20,6 @@ export default async function TopUp() {
       <div className="card">
         <TopUpForm />
       </div>
-      <p className="foot"><Link href="/">← Dashboard</Link> · <Link href="/dues">Pay dues</Link></p>
     </main>
   );
 }

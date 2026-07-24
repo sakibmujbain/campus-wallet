@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Inter, Space_Mono } from "next/font/google";
 import { RegisterSW } from "./register-sw";
 import { AppBar } from "@/components/app-bar";
+import { MarginDoodles } from "@/components/margin-doodles";
 import "./globals.css";
 
 // Editorial display (headings + the balance), clean body workhorse, on-brand mono.
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}` }} />
       </head>
       <body>
+        <MarginDoodles />
         <AppBar />
         {children}
         <RegisterSW />

@@ -54,8 +54,6 @@ export default async function Dues() {
           </div>
         </div>
       )}
-
-      <p className="foot"><Link href="/">← Dashboard</Link> · <Link href="/top-up">Top up</Link></p>
     </main>
   );
 }

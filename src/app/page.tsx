@@ -37,9 +37,15 @@ export default async function Dashboard() {
         </div>
       </div>
 
-      <p className="sub">
-        {student.studentNo} · {student.email}{verified && <> — verified via your <code>.edu.bd</code> email.</>}
+      <p className="sub" style={verified ? { marginBottom: "0.3rem" } : undefined}>
+        {student.studentNo} · {student.email}
       </p>
+      {verified && (
+        <p className="verify-note">
+          <span className="verify-check" aria-hidden="true">✓</span>
+          Verified through your <span className="hl">.edu.bd</span> student email
+        </p>
+      )}
       {!verified && kycGuidance(student.kycStatus) && (
         <div className="msg info" role="status" style={{ marginTop: "1rem" }}>{kycGuidance(student.kycStatus)}</div>
       )}
@@ -54,7 +60,7 @@ export default async function Dashboard() {
         <CoinDoodle style={{ position: "absolute", right: "-8px", top: "-16px", width: "132px", height: "132px", opacity: 0.55, pointerEvents: "none" }} />
         <span className="balance-label">Spending wallet</span>
         <div className="balance-value"><Amount value={student.spending} /></div>
-        <span className="tag" style={{ marginTop: "0.75rem" }}>Campus Wallet</span>
+        <span className="balance-brand">Campus Wallet</span>
       </div>
       <div className="tiles" style={{ marginTop: "0.9rem" }}>
         <div className="tile">
@@ -88,6 +94,11 @@ export default async function Dashboard() {
           <span className="feature-icon">📅</span>
           <span className="feature-title">My collections</span>
           <span className="feature-desc">Pay the batch &amp; club drives you&apos;re on, and track what you owe.</span>
+        </Link>
+        <Link href="/events" className="feature">
+          <span className="feature-icon">🧾</span>
+          <span className="feature-title">Events &amp; defaulters</span>
+          <span className="feature-desc">Track every batch &amp; club drive&apos;s progress and see who still owes.</span>
         </Link>
         <Link href="/savings" className="feature">
           <span className="feature-icon">🐖</span>

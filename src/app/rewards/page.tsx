@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getStudent } from "@/lib/session";
 import { getLeaderboard, getPoints, getRedeemRate, listPointHistory } from "@/db/rewards";
@@ -102,8 +101,6 @@ export default async function Rewards() {
           </div>
         )}
       </div>
-
-      <p className="foot"><Link href="/">← Dashboard</Link> · <Link href="/hub">Earn at the hub</Link></p>
     </main>
   );
 }

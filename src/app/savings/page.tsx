@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getStudent } from "@/lib/session";
 import { getSavingsDetail, listRoundupHistory } from "@/db/savings";
@@ -71,8 +70,6 @@ export default async function Savings() {
           </div>
         )}
       </div>
-
-      <p className="foot"><Link href="/">← Dashboard</Link> · <Link href="/hub">Spend at the hub</Link></p>
     </main>
   );
 }

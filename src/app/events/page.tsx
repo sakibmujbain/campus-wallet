@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { listDefaulters, listEventProgress } from "@/db/accounts";
 import { money } from "@/lib/format";
 import { Progress } from "@/components/progress";
@@ -86,10 +85,6 @@ export default async function Events() {
           <p style={{ color: "var(--muted)" }}>No active collections right now.</p>
         </div>
       )}
-
-      <p className="foot">
-        <Link href="/">← Wallet balances</Link> · <Link href="/my-events">Pay your drives</Link> · <Link href="/hub">Payment hub</Link>
-      </p>
     </main>
   );
 }

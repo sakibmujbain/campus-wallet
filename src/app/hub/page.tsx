@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { listPayableTargets } from "@/db/accounts";
 import { getStudent } from "@/lib/session";
@@ -70,10 +69,6 @@ export default async function Hub() {
           </div>
         </>
       )}
-
-      <p className="foot">
-        <Link href="/">← Dashboard</Link> · <Link href="/events">Events &amp; defaulters</Link>
-      </p>
     </main>
   );
 }

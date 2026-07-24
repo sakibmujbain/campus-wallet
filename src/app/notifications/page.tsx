@@ -48,8 +48,6 @@ export default async function Notifications() {
           return n.link ? <Link key={n.notificationId} href={n.link} style={{ textDecoration: "none", color: "inherit" }}>{body}</Link> : <div key={n.notificationId}>{body}</div>;
         })
       )}
-
-      <p className="foot"><Link href="/">← Dashboard</Link></p>
     </main>
   );
 }

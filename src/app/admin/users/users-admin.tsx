@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { DU_SESSIONS } from "@/lib/du";
+import { SessionSelect } from "@/components/combo";
 
 interface Grant { capability: string; scopeKind: string; scopeRef: string | null }
 interface User { userId: number; fullName: string; email: string; studentNo: string | null; department: string | null; batch: string | null; kycStatus: string | null; grants: Grant[] }
@@ -25,7 +27,12 @@ export function UsersAdmin({ users, requests }: { users: User[]; requests: Req[]
   }
 
   const decide = (requestId: number, approve: boolean) => post("/api/admin/role-requests", { requestId, approve }, `req-${requestId}`);
-  const promote = (targetId: number, capability: string) => post("/api/admin/users", { action: "promote", targetId, capability, scopeKind: "all" }, `u-${targetId}`);
+  // A cr grant is scoped to one session (migration 0020's promote_user rejects it otherwise);
+  // every other capability is unscoped.
+  const promote = (targetId: number, capability: string, scopeRef?: string) =>
+    post("/api/admin/users", capability === "cr"
+      ? { action: "promote", targetId, capability, scopeKind: "batch", scopeRef }
+      : { action: "promote", targetId, capability, scopeKind: "all" }, `u-${targetId}`);
   const demote = (targetId: number, g: Grant) => post("/api/admin/users", { action: "demote", targetId, capability: g.capability, scopeKind: g.scopeKind, scopeRef: g.scopeRef }, `u-${targetId}`);
   const setDept = (targetId: number, department: string) => post("/api/admin/users", { action: "department", targetId, department }, `u-${targetId}`);
 
@@ -84,12 +91,13 @@ export function UsersAdmin({ users, requests }: { users: User[]; requests: Req[]
 
 function UserRow({ u, busy, onPromote, onDemote, onDept }: {
   u: User; busy: string | null;
-  onPromote: (id: number, cap: string) => void;
+  onPromote: (id: number, cap: string, scopeRef?: string) => void;
   onDemote: (id: number, g: Grant) => void;
   onDept: (id: number, dept: string) => void;
 }) {
   const [dept, setDept] = useState(u.department ?? "");
   const [cap, setCap] = useState("cr");
+  const [session, setSession] = useState("");
   const isStudent = u.studentNo != null;
 
   return (
@@ -118,7 +126,14 @@ function UserRow({ u, busy, onPromote, onDemote, onDept }: {
           {/* club_exec omitted: retired with clubs (0017). Existing grants stay revocable. */}
           {["cr", "institution", "admin"].map((c) => <option key={c} value={c}>{c}</option>)}
         </select>{" "}
-        <button onClick={() => onPromote(u.userId, cap)} disabled={busy !== null}>Grant</button>
+        {cap === "cr" && (
+          <span style={{ display: "inline-block", minWidth: "8.5rem", verticalAlign: "middle" }}>
+            <SessionSelect value={session} onChange={setSession} sessions={DU_SESSIONS} anyLabel="Session…" />
+          </span>
+        )}{" "}
+        <button onClick={() => onPromote(u.userId, cap, session)}
+          disabled={busy !== null || (cap === "cr" && !session)}
+          title={cap === "cr" && !session ? "Pick the session this student represents" : undefined}>Grant</button>
       </td>
     </tr>
   );

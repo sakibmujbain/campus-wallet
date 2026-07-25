@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { z } from "zod";
 import { getViewer } from "@/lib/viewer";
-import { addFilteredToRoster, addToRoster, refundContribution, remindDefaulters, removeFromRoster, searchRosterCandidates, setDriveStatus, settleDrive, updateDriveDescription } from "@/db/organizer";
+import { addFilteredToRoster, addToRoster, refundContribution, remindDefaulters, removeFromRoster, searchRosterCandidates, setDriveArchived, setDriveStatus, settleDrive, updateDriveDescription } from "@/db/organizer";
 import { mapPgError } from "@/lib/format";
 
 export const runtime = "nodejs";
@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 const amount = z.string().regex(/^\d{1,12}(\.\d{1,4})?$/, "amount must be a decimal with at most 12 whole digits");
 
 const Body = z.object({
-  action: z.enum(["roster_add", "roster_add_filtered", "roster_remove", "status", "description", "refund", "settle", "remind"]),
+  action: z.enum(["roster_add", "roster_add_filtered", "roster_remove", "status", "description", "archive", "unarchive", "refund", "settle", "remind"]),
   studentId: z.coerce.number().int().positive().optional(),
   studentAccountId: z.coerce.number().int().positive().optional(),
   destination: z.coerce.number().int().positive().optional(),
@@ -84,6 +84,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         break;
       case "description":
         await updateDriveDescription(v.appUserId, eventId, d.description ?? null);
+        break;
+      case "archive":
+        await setDriveArchived(v.appUserId, eventId, true);
+        break;
+      case "unarchive":
+        await setDriveArchived(v.appUserId, eventId, false);
         break;
       case "refund": {
         if (!d.studentAccountId || !d.amount) return NextResponse.json({ ok: false, error: "studentAccountId and amount required" }, { status: 400 });

@@ -13,22 +13,26 @@ export interface DriveSummary {
   pct: string;
   rosterSize: number;
   defaulterCount: number;
+  archivedAt: string | null;
 }
 
-/** Drives the viewer runs (admins see all). */
-export async function listMyDrives(appUserId: number, isAdmin: boolean): Promise<DriveSummary[]> {
+/** Drives the viewer runs (admins see all). Archived drives are filed away and stay out
+ *  of the working list unless explicitly requested. */
+export async function listMyDrives(appUserId: number, isAdmin: boolean, includeArchived = false): Promise<DriveSummary[]> {
   const { rows } = await pool.query(
     `SELECT e.event_id::int AS "eventId", e.name, e.batch, e.status,
             COALESCE(pr.collected, 0)::text AS collected,
             COALESCE(pr.target, 0)::text    AS target,
             COALESCE(pr.pct_collected, 0)::text AS pct,
             COALESCE(pr.roster_size, 0)::int    AS "rosterSize",
-            (SELECT count(*)::int FROM v_event_defaulters d WHERE d.event_id = e.event_id) AS "defaulterCount"
+            (SELECT count(*)::int FROM v_event_defaulters d WHERE d.event_id = e.event_id) AS "defaulterCount",
+            e.archived_at::text AS "archivedAt"
        FROM event e
        LEFT JOIN v_event_progress pr ON pr.event_id = e.event_id
-      WHERE $2 OR e.organizer_user_id = $1
+      WHERE ($2 OR e.organizer_user_id = $1)
+        AND ($3 OR e.archived_at IS NULL)
       ORDER BY e.event_id DESC`,
-    [appUserId, isAdmin],
+    [appUserId, isAdmin, includeArchived],
   );
   return rows as DriveSummary[];
 }
@@ -37,6 +41,10 @@ export interface DriveDetail extends DriveSummary {
   description: string | null;
   deadline: string | null;
   organizerId: number;
+  /** CURRENT balance of the pooled wallet. Distinct from `collected`, which is the lifetime
+   *  SUM(event_contribution) and never drops when settle_event() sweeps the pool — archiving
+   *  is gated on this, so the UI must read the same number set_drive_archived() checks. */
+  poolBalance: string;
 }
 
 /** A single drive, only if the viewer is its organizer (or an admin). Null otherwise. */
@@ -48,7 +56,11 @@ export async function getDrive(appUserId: number, isAdmin: boolean, eventId: num
             COALESCE(pr.target, 0)::text    AS target,
             COALESCE(pr.pct_collected, 0)::text AS pct,
             COALESCE(pr.roster_size, 0)::int    AS "rosterSize",
-            (SELECT count(*)::int FROM v_event_defaulters d WHERE d.event_id = e.event_id) AS "defaulterCount"
+            (SELECT count(*)::int FROM v_event_defaulters d WHERE d.event_id = e.event_id) AS "defaulterCount",
+            e.archived_at::text AS "archivedAt",
+            COALESCE((SELECT ab.balance FROM event_wallet ew
+                        LEFT JOIN account_balance ab ON ab.account_id = ew.account_id
+                       WHERE ew.event_id = e.event_id), 0)::text AS "poolBalance"
        FROM event e
        LEFT JOIN v_event_progress pr ON pr.event_id = e.event_id
       WHERE e.event_id = $1`,
@@ -211,6 +223,14 @@ export async function removeFromRoster(actorId: number, eventId: number, student
 export async function updateDriveDescription(actorId: number, eventId: number, description: string | null): Promise<void> {
   await withTransaction(async (c) => {
     await c.query(`SELECT update_drive_description($1,$2,$3)`, [actorId, eventId, description]);
+  }, { userId: actorId });
+}
+
+/** File a finished drive away (or bring it back). Guarded in SQL: settled/cancelled only,
+ *  and never while the pooled wallet still holds money. */
+export async function setDriveArchived(actorId: number, eventId: number, archived: boolean): Promise<void> {
+  await withTransaction(async (c) => {
+    await c.query(`SELECT set_drive_archived($1,$2,$3)`, [actorId, eventId, archived]);
   }, { userId: actorId });
 }
 

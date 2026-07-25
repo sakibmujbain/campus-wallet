@@ -10,9 +10,14 @@ const STATUS_BADGE: Record<string, string> = {
   open: "badge-ok", closed: "badge-warn", settled: "kind", cancelled: "badge-warn",
 };
 
-export default async function OrganizerHome() {
+export default async function OrganizerHome({ searchParams }: { searchParams: Promise<{ archived?: string }> }) {
   const v = await requireViewer("cr"); // re-assert per page (a shared layout guard doesn't re-run on soft nav)
-  const drives = await listMyDrives(v.appUserId, v.isAdmin);
+  const showArchived = (await searchParams).archived === "1";
+  // Archived drives are filed away, so the working list stays short however many drives
+  // have come and gone; they remain one click away rather than deleted.
+  const all = await listMyDrives(v.appUserId, v.isAdmin, true);
+  const drives = all.filter((e) => (showArchived ? e.archivedAt !== null : e.archivedAt === null));
+  const archivedCount = all.filter((e) => e.archivedAt !== null).length;
 
   return (
     <main>
@@ -23,10 +28,20 @@ export default async function OrganizerHome() {
       </div>
       <p className="sub">Batch collections you run. Open a drive to manage its roster, chase defaulters, refund, and settle.</p>
 
+      {(archivedCount > 0 || showArchived) && (
+        <p style={{ margin: "-1rem 0 1.25rem" }}>
+          <Link href={showArchived ? "/cr" : "/cr?archived=1"} className="btn-ghost">
+            {showArchived ? "← Back to active drives" : `Archived (${archivedCount})`}
+          </Link>
+        </p>
+      )}
+
       {drives.length === 0 ? (
         <div className="card">
-          <p style={{ color: "var(--muted)", marginBottom: "0.8rem" }}>You don&apos;t run any drives yet.</p>
-          <Link href="/cr/new" className="btn-primary">Create your first drive</Link>
+          <p style={{ color: "var(--muted)", marginBottom: showArchived ? 0 : "0.8rem" }}>
+            {showArchived ? "No archived drives." : "You don't run any drives yet."}
+          </p>
+          {!showArchived && <Link href="/cr/new" className="btn-primary">Create your first drive</Link>}
         </div>
       ) : (
         drives.map((e) => {

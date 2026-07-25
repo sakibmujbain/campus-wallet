@@ -55,7 +55,7 @@ export async function listMyEvents(appUserId: number): Promise<MyEvent[]> {
               LEFT JOIN paid p2 ON p2.event_id = r2.event_id AND p2.student_id = r2.student_id
              WHERE r2.event_id = e.event_id
        ) agg ON true
-      WHERE r.student_id = $1
+      WHERE r.student_id = $1 AND e.archived_at IS NULL
       ORDER BY e.event_id DESC`,
     [appUserId],
   );

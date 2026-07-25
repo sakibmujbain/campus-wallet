@@ -79,11 +79,21 @@ export function Combo({
         <svg className="combo-caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9.5 6 6 6-6" /></svg>
       </button>
 
+      {/* The panel cancels click defaults: call sites wrap this in a <label>, whose labeled
+          control is the trigger button, so clicking panel chrome (a faculty heading, the
+          padding) would re-activate the trigger and slam the popup shut. */}
       {open && (
-        <div className="combo-panel">
+        <div className="combo-panel" onClick={(e) => e.preventDefault()}>
           {searchable && (
             <input ref={search} value={q} onChange={(e) => setQ(e.target.value)}
-              placeholder={searchPlaceholder} aria-label={searchPlaceholder} autoComplete="off" />
+              placeholder={searchPlaceholder} aria-label={searchPlaceholder} autoComplete="off"
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                // This input sits inside the page's <form>; Enter would submit it.
+                e.preventDefault();
+                const flat = shown.flatMap((g) => g.options);
+                if (flat.length === 1) pick(flat[0].value);
+              }} />
           )}
           <ul className="combo-list">
             {allowClear && (

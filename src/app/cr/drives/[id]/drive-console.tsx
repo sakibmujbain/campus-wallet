@@ -12,7 +12,7 @@ import { DeptSelect, HallSelect, SessionSelect } from "@/components/combo";
 
 interface DriveDetail {
   eventId: number; name: string; batch: string | null; status: string;
-  description: string | null; deadline: string | null;
+  description: string | null; deadline: string | null; archivedAt: string | null; poolBalance: string;
   collected: string; target: string; pct: string; rosterSize: number; defaulterCount: number;
 }
 interface RosterRow {
@@ -38,6 +38,12 @@ export function DriveConsole({ drive, roster, destinations, halls }: { drive: Dr
   const settled = drive.status === "settled"; // pool swept to a treasury — refunds are closed
   const defaulters = roster.filter((r) => Number(r.outstanding) > 0);
   const pct = Math.min(100, Number(drive.pct));
+  // Gate on the pooled wallet's CURRENT balance — the same value set_drive_archived() checks.
+  // `collected` is the lifetime SUM(event_contribution) and never drops when settle_event()
+  // sweeps the pool, so using it here hid Archive on exactly the drives it exists for.
+  const emptyPool = Number(drive.poolBalance) === 0;
+  const canArchive = emptyPool && !drive.archivedAt;
+
 
   // Resolves true only when the action succeeded, so callers (e.g. the description
   // editor) can close their own UI without duplicating the error handling.
@@ -111,6 +117,27 @@ export function DriveConsole({ drive, roster, destinations, halls }: { drive: Dr
             )}
           </div>
         )}
+
+        {/* Retiring the drive. Archiving files it away and closes the pooled wallet; the
+            rows stay, because the ledger behind them is append-only. */}
+        <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
+          {drive.archivedAt ? (
+            <>
+              <span className="kind">Archived {drive.archivedAt.slice(0, 10)}</span>
+              <button className="btn-ghost" disabled={busy !== null}
+                onClick={() => post({ action: "unarchive" }, "archive", () => "Drive restored.")}>Restore</button>
+            </>
+          ) : canArchive ? (
+            <button className="btn-ghost" disabled={busy !== null}
+              onClick={() => post({ action: "archive" }, "archive", () => "Drive archived — it's out of your working list.")}>
+              Archive drive
+            </button>
+          ) : !emptyPool ? (
+            <span className="kind">Holding {money(drive.poolBalance)} — refund or settle it to archive this drive.</span>
+          ) : (
+            <span className="kind">Settle or cancel this drive to archive it.</span>
+          )}
+        </div>
       </div>
 
       {/* Defaulters + reminders */}

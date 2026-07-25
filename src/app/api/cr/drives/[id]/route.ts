@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { z } from "zod";
 import { getViewer } from "@/lib/viewer";
-import { addFilteredToRoster, addToRoster, refundContribution, remindDefaulters, removeFromRoster, searchRosterCandidates, setDriveStatus, settleDrive } from "@/db/organizer";
+import { addFilteredToRoster, addToRoster, refundContribution, remindDefaulters, removeFromRoster, searchRosterCandidates, setDriveStatus, settleDrive, updateDriveDescription } from "@/db/organizer";
 import { mapPgError } from "@/lib/format";
 
 export const runtime = "nodejs";
@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 const amount = z.string().regex(/^\d{1,12}(\.\d{1,4})?$/, "amount must be a decimal with at most 12 whole digits");
 
 const Body = z.object({
-  action: z.enum(["roster_add", "roster_add_filtered", "roster_remove", "status", "refund", "settle", "remind"]),
+  action: z.enum(["roster_add", "roster_add_filtered", "roster_remove", "status", "description", "refund", "settle", "remind"]),
   studentId: z.coerce.number().int().positive().optional(),
   studentAccountId: z.coerce.number().int().positive().optional(),
   destination: z.coerce.number().int().positive().optional(),
@@ -21,6 +21,8 @@ const Body = z.object({
   hallId: z.coerce.number().int().positive().optional(),
   session: z.string().optional(),
   status: z.enum(["open", "closed", "cancelled"]).optional(),
+  // null/omitted clears the description; the DB enforces the same 2000-char cap
+  description: z.string().max(2000).optional().nullable(),
   // A stable client key makes a retried/double-submitted refund replay the same txn
   // instead of issuing a second one (refund_event is idempotent by key).
   idempotencyKey: z.string().uuid().optional(),
@@ -79,6 +81,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       case "status":
         if (!d.status) return NextResponse.json({ ok: false, error: "status required" }, { status: 400 });
         await setDriveStatus(v.appUserId, eventId, d.status);
+        break;
+      case "description":
+        await updateDriveDescription(v.appUserId, eventId, d.description ?? null);
         break;
       case "refund": {
         if (!d.studentAccountId || !d.amount) return NextResponse.json({ ok: false, error: "studentAccountId and amount required" }, { status: 400 });

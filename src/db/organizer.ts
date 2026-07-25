@@ -178,6 +178,14 @@ export async function removeFromRoster(actorId: number, eventId: number, student
   }, { userId: actorId });
 }
 
+/** Rewrite a drive's description (organizer/admin only). Metadata only — the function
+ *  touches no roster row, ledger entry, or status, so it works on finalized drives too. */
+export async function updateDriveDescription(actorId: number, eventId: number, description: string | null): Promise<void> {
+  await withTransaction(async (c) => {
+    await c.query(`SELECT update_drive_description($1,$2,$3)`, [actorId, eventId, description]);
+  }, { userId: actorId });
+}
+
 export async function setDriveStatus(actorId: number, eventId: number, status: string): Promise<void> {
   await withTransaction(async (c) => {
     await c.query(`SELECT set_drive_status($1,$2,$3)`, [actorId, eventId, status]);

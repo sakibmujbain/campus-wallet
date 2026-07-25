@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { money } from "@/lib/format";
 import { newIdem } from "@/lib/idem";
 import { Progress } from "@/components/progress";
+import { FormattedText, tidyText } from "@/components/rich-text";
 import { DU_DEPARTMENT_GROUPS, DU_SESSIONS } from "@/lib/du";
 
 interface DriveDetail {
@@ -34,7 +35,9 @@ export function DriveConsole({ drive, roster, destinations, halls }: { drive: Dr
   const defaulters = roster.filter((r) => Number(r.outstanding) > 0);
   const pct = Math.min(100, Number(drive.pct));
 
-  async function post(body: Record<string, unknown>, tag: string, ok?: (d: Record<string, unknown>) => string) {
+  // Resolves true only when the action succeeded, so callers (e.g. the description
+  // editor) can close their own UI without duplicating the error handling.
+  async function post(body: Record<string, unknown>, tag: string, ok?: (d: Record<string, unknown>) => string): Promise<boolean> {
     setBusy(tag);
     setMsg(null);
     try {
@@ -45,11 +48,13 @@ export function DriveConsole({ drive, roster, destinations, halls }: { drive: Dr
       if (res.ok && d.ok) {
         if (ok) setMsg({ ok: true, text: ok(d) });
         router.refresh();
-      } else {
-        setMsg({ ok: false, text: d.error ?? "Action failed." });
+        return true;
       }
+      setMsg({ ok: false, text: d.error ?? "Action failed." });
+      return false;
     } catch {
       setMsg({ ok: false, text: "Couldn't reach the server — please try again." });
+      return false;
     } finally {
       setBusy(null);
       setConfirming(null);
@@ -68,7 +73,12 @@ export function DriveConsole({ drive, roster, destinations, halls }: { drive: Dr
         </div>
         <span className={`badge ${STATUS_BADGE[drive.status] ?? "kind"}`}>{drive.status}</span>
       </div>
-      {drive.description && <p className="sub">{drive.description}</p>}
+      <DriveDescription
+        description={drive.description}
+        busy={busy !== null}
+        saving={busy === "description"}
+        onSave={(text) => post({ action: "description", description: text }, "description", () => "Description updated.")}
+      />
 
       {/* Progress */}
       <div className="card">
@@ -209,6 +219,56 @@ export function DriveConsole({ drive, roster, destinations, halls }: { drive: Dr
 
       {msg && <div className={`msg ${msg.ok ? "ok" : "err"}`} role="status" aria-live="polite">{msg.text}</div>}
     </>
+  );
+}
+
+/** Read view of the drive description with an inline editor, so a pasted run-on blurb
+ *  can be reformatted in place. "Tidy up" applies the same paragraph-splitting the
+ *  renderer hints at, but here the author reviews it before saving. */
+function DriveDescription({ description, busy, saving, onSave }: {
+  description: string | null; busy: boolean; saving: boolean;
+  onSave: (text: string | null) => Promise<boolean>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(description ?? "");
+
+  async function save() {
+    if (await onSave(text.trim() === "" ? null : text)) setEditing(false);
+  }
+
+  if (!editing) {
+    return (
+      <div className="desc-block">
+        {description
+          ? <FormattedText text={description} className="desc-rich" />
+          : <p className="desc-rich" style={{ fontStyle: "italic" }}>No description yet.</p>}
+        <button type="button" className="btn-ghost" disabled={busy}
+          onClick={() => { setText(description ?? ""); setEditing(true); }}>
+          {description ? "Edit description" : "Add a description"}
+        </button>
+      </div>
+    );
+  }
+
+  const tidied = tidyText(text);
+  return (
+    <div className="desc-block">
+      <label>
+        Description
+        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} maxLength={2000}
+          placeholder="Itinerary, what's included, how to pay…" />
+        <span className="kind" style={{ justifySelf: "end", color: text.length > 1900 ? "var(--bad)" : "var(--muted)" }}>
+          {text.length}/2000
+        </span>
+      </label>
+      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.6rem" }}>
+        <button type="button" disabled={busy} onClick={save}>{saving ? "Saving…" : "Save"}</button>
+        <button type="button" className="btn-ghost" disabled={busy} onClick={() => setEditing(false)}>Cancel</button>
+        <button type="button" className="btn-ghost" disabled={busy || tidied === text}
+          title="Break the text into paragraphs at day markers and labels"
+          onClick={() => setText(tidied)}>Tidy up</button>
+      </div>
+    </div>
   );
 }
 

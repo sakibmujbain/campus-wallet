@@ -19,7 +19,7 @@ export default async function Dashboard() {
   const verified = student.kycStatus === "verified";
 
   return (
-    <main>
+    <main className="dashboard">
       <div className="topbar">
         <div>
           <div className="eyebrow">Dashboard</div>
@@ -50,30 +50,33 @@ export default async function Dashboard() {
         <div className="msg info" role="status" style={{ marginTop: "1rem" }}>{kycGuidance(student.kycStatus)}</div>
       )}
 
-      {student.duesCount > 0 && (
-        <Link href="/dues" className="dues-nudge">
-          💳 You owe <strong>{money(student.duesTotal)}</strong> in {student.duesCount} due{student.duesCount > 1 ? "s" : ""} — pay now →
-        </Link>
-      )}
-
-      <div className="balance doodle-panel">
-        <CoinDoodle style={{ position: "absolute", right: "-8px", top: "-16px", width: "132px", height: "132px", opacity: 0.55, pointerEvents: "none" }} />
-        <span className="balance-label">Spending wallet</span>
-        <div className="balance-value"><Amount value={student.spending} /></div>
-        <span className="balance-brand">Campus Wallet</span>
-      </div>
-      <div className="tiles" style={{ marginTop: "0.9rem" }}>
-        <div className="tile">
-          <span className="tile-label">Tuition Shield savings</span>
-          <span className="tile-value">{money(student.savings)}</span>
+      <div className="hero-grid">
+        <div className="balance doodle-panel">
+          <CoinDoodle style={{ position: "absolute", right: "-6px", top: "-12px", width: "104px", height: "104px", opacity: 0.55, pointerEvents: "none" }} />
+          <span className="balance-label">Spending wallet</span>
+          <div className="balance-value"><Amount value={student.spending} /></div>
+          <span className="balance-brand">Campus Wallet</span>
         </div>
-        <div className="tile">
-          <span className="tile-label">Loyalty points</span>
-          <span className="tile-value">{Number(student.points).toLocaleString()}</span>
+        <div className="hero-side">
+          {student.duesCount > 0 && (
+            <Link href="/dues" className="dues-nudge">
+              💳 You owe <strong>{money(student.duesTotal)}</strong> in {student.duesCount} due{student.duesCount > 1 ? "s" : ""} — pay now →
+            </Link>
+          )}
+          <div className="tiles hero-tiles">
+            <div className="tile">
+              <span className="tile-label">Tuition Shield savings</span>
+              <span className="tile-value">{money(student.savings)}</span>
+            </div>
+            <div className="tile">
+              <span className="tile-label">Loyalty points</span>
+              <span className="tile-value">{Number(student.points).toLocaleString()}</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      <h2 style={{ fontSize: "1rem", margin: "2rem 0 1rem" }}>What you can do</h2>
+      <h2 style={{ fontSize: "1rem", margin: "1.75rem 0 1rem" }}>What you can do</h2>
       <div className="features">
         <Link href="/dues" className="feature">
           <span className="feature-icon">💳</span>
@@ -114,7 +117,7 @@ export default async function Dashboard() {
 
       {viewer && (viewer.isAdmin || viewer.has("cr") || viewer.has("club_exec")) && (
         <>
-          <h2 style={{ fontSize: "1rem", margin: "2rem 0 1rem" }}>Your consoles</h2>
+          <h2 style={{ fontSize: "1rem", margin: "1.75rem 0 1rem" }}>Your consoles</h2>
           <div className="features">
             {viewer.isAdmin && (
               <Link href="/admin" className="feature">
@@ -134,7 +137,7 @@ export default async function Dashboard() {
         </>
       )}
 
-      <p className="foot" style={{ marginTop: "2.5rem" }}>
+      <p className="foot" style={{ marginTop: "2rem" }}>
         Money moves through an immutable double-entry ledger; balances are derived, not stored.
       </p>
     </main>

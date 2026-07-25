@@ -19,7 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <span className="console-title">⚙ Admin console</span>
         <ConsoleNav links={LINKS} />
       </div>
-      {children}
+      <div className="console-wide">{children}</div>
     </>
   );
 }

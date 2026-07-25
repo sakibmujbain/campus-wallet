@@ -160,6 +160,11 @@ select:focus, input:focus { outline: none; border-color: var(--accent-deep);
 
 /* roster bulk-add filter grid (department / hall / session) */
 .roster-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.6rem; }
+
+/* cap a long defaulter list so each event card stays compact — the list scrolls
+   inside its own box (sticky header) instead of pushing the next event down. */
+.defaulter-list { max-height: 19rem; overflow-y: auto; }
+.defaulter-list thead th { position: sticky; top: 0; background: var(--surface); z-index: 1; }
 ::placeholder { color: var(--muted); }
 
 /* global focus ring — visible for keyboard, clean for mouse */
@@ -273,6 +278,37 @@ a.feature:hover { transform: translateY(-4px); border-color: var(--ink); box-sha
 .dues-nudge:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
 .dues-nudge strong { font-family: var(--font-display); }
 
+/* ── dashboard: wide canvas + two-column hero ───────────────────────────────
+   The signed-in home used the default 46rem column, so on desktop it wasted
+   both margins and ran very long. Give it a wider canvas, set the balance
+   beside the quick stats, and let the action cards spread ~4-up. */
+main.dashboard { max-width: 74rem; }
+main.dashboard .sub { margin-bottom: 0.9rem; }
+
+/* both columns stretch to equal height; the balance sets the height (it's the
+   taller of the two) and the side column's tiles grow to fill so bottoms align */
+.hero-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 0.9rem; align-items: stretch; margin-top: 1.1rem; }
+.hero-grid .balance { margin: 0; padding: 1.25rem 1.5rem; }
+.hero-side { display: flex; flex-direction: column; gap: 0.9rem; }
+/* two stat tiles side-by-side (default .tiles auto-fit); grow to fill the column height */
+.hero-side .hero-tiles { margin: 0; flex: 1; }
+.hero-side .hero-tiles .tile { padding: 0.9rem 1.1rem; justify-content: center; }
+
+/* on the wide canvas the quick-action cards land ~4-up (7 cards = 2 tidy rows) */
+main.dashboard .features { grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr)); }
+
+/* admin console: wide column so dense data tables fit without a horizontal scroll.
+   Shrinks with the viewport; .scroll-x still catches overflow on small screens. */
+.console-wide main { max-width: 74rem; }
+/* long .du.ac.bd emails: fill the (fixed-width) User column and ellipsize only if
+   they overrun it — full value on hover. Overrides .kind's nowrap pill from spilling. */
+.console-wide .trunc { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+
+@media (max-width: 60rem) {
+  main.dashboard { max-width: 46rem; }
+  .hero-grid { grid-template-columns: 1fr; }
+}
+
 /* ── auth + dashboard topbar ────────────────────────────────────────────── */
 .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
 .topbar-right { display: flex; align-items: center; gap: 0.6rem; }
@@ -369,6 +405,8 @@ a.feature:hover { transform: translateY(-4px); border-color: var(--ink); box-sha
 .margin-doodles { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: -1; }
 .margin-doodles svg { position: absolute; }
 @media (max-width: 1024px) { .margin-doodles { display: none; } }
+/* the 74rem dashboard/admin column only clears its gutters on large viewports */
+@media (max-width: 90rem) { .margin-doodles.col-74 { display: none; } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }

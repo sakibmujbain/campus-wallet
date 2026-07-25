@@ -33,9 +33,7 @@ export default async function Rewards() {
       <div className="eyebrow">Campus Wallet · Rewards</div>
       <h1>Loyalty rewards</h1>
       <p className="sub">
-        Earn points on campus spending — {rate} points convert back to ৳1, paid from the loyalty pool into your
-        spending wallet. Balances are a live <code>SUM</code> of an append-only points ledger; the leaderboard is a
-        window-<code>RANK()</code> materialized view.
+        Earn points on campus spending — {rate} points convert back to ৳1.
       </p>
 
       <div className="tiles">

@@ -52,7 +52,7 @@ export default async function Events() {
               {eventDefaulters.length === 0 ? (
                 <p style={{ color: "var(--good)", fontSize: "0.9rem" }}>Everyone has paid in full. 🎉</p>
               ) : (
-                <div className="scroll-x">
+                <div className="scroll-x defaulter-list">
                   <table>
                     <thead>
                       <tr>

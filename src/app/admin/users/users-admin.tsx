@@ -42,7 +42,7 @@ export function UsersAdmin({ users, requests }: { users: User[]; requests: Req[]
               <tbody>
                 {requests.map((r) => (
                   <tr key={r.requestId}>
-                    <td>{r.fullName}<br /><span className="kind">{r.email}</span></td>
+                    <td>{r.fullName}<br /><span className="kind trunc" title={r.email}>{r.email}</span></td>
                     <td><span className="kind">{r.requestedRole}</span></td>
                     <td>{r.scopeKind}{r.scopeRef ? ` · ${r.scopeRef}` : ""}</td>
                     <td style={{ maxWidth: "12rem", fontSize: "0.82rem", color: "var(--muted)" }}>{r.justification ?? "—"}</td>
@@ -61,7 +61,14 @@ export function UsersAdmin({ users, requests }: { users: User[]; requests: Req[]
       <div className="card">
         <h2>Users ({users.length})</h2>
         <div className="scroll-x">
-          <table style={{ minWidth: "720px" }}>
+          <table style={{ minWidth: "720px", width: "100%", tableLayout: "fixed" }}>
+            <colgroup>
+              <col style={{ width: "33%" }} />{/* User + email */}
+              <col style={{ width: "12%" }} />{/* Student */}
+              <col style={{ width: "18%" }} />{/* Dept */}
+              <col style={{ width: "17%" }} />{/* Roles */}
+              <col style={{ width: "20%" }} />{/* Grant */}
+            </colgroup>
             <thead><tr><th>User</th><th>Student</th><th>Dept</th><th>Roles</th><th>Grant</th></tr></thead>
             <tbody>
               {users.map((u) => <UserRow key={u.userId} u={u} busy={busy} onPromote={promote} onDemote={demote} onDept={setDept} />)}
@@ -87,12 +94,12 @@ function UserRow({ u, busy, onPromote, onDemote, onDept }: {
 
   return (
     <tr>
-      <td>{u.fullName}<br /><span className="kind">{u.email}</span></td>
+      <td>{u.fullName}<br /><span className="kind trunc" title={u.email}>{u.email}</span></td>
       <td>{u.studentNo ?? "—"}{u.kycStatus && <><br /><span className="kind">{u.kycStatus}</span></>}</td>
       <td style={{ whiteSpace: "nowrap" }}>
         {isStudent ? (
           <>
-            <input value={dept} onChange={(e) => setDept(e.target.value)} placeholder="—" style={{ width: "5rem" }} aria-label={`Department for ${u.fullName}`} />
+            <input value={dept} onChange={(e) => setDept(e.target.value)} placeholder="—" style={{ width: "9rem" }} aria-label={`Department for ${u.fullName}`} />
             <button className="btn-ghost icon-btn" onClick={() => onDept(u.userId, dept)} disabled={busy !== null || dept === (u.department ?? "")} title="Save department" aria-label="Save department">✓</button>
           </>
         ) : "—"}

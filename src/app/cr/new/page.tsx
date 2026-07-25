@@ -18,8 +18,8 @@ export default async function NewDrive() {
       <div className="eyebrow">Organizer</div>
       <h1>New collection drive</h1>
       <p className="sub">
-        Name the drive, pick the session it&apos;s for, and choose who&apos;s on the roster — the whole session,
-        a department and/or hall within it, or a list you build yourself on the next screen.
+        Name the drive, then choose who pays. Department, hall and session are independent filters —
+        use one for a departmental tour or a hall event, or combine them to narrow it down.
       </p>
       <div className="card">
         <NewDriveForm scopes={scopes} isAdmin={v!.isAdmin} halls={halls} />

@@ -7,7 +7,6 @@ import { DeptSelect, HallSelect, SessionSelect } from "@/components/combo";
 
 interface Scope { scopeKind: string; scopeRef: string }
 interface HallOption { hallId: number; name: string }
-
 export function NewDriveForm({ scopes, isAdmin, halls }: { scopes: Scope[]; isAdmin: boolean; halls: HallOption[] }) {
   const router = useRouter();
   // The scope only AUTHORISES the drive (organizer_covers checks it). It does not decide

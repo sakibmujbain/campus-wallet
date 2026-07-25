@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { HallSelect } from "@/components/combo";
 
 interface Hall { hallId: number; name: string }
 
@@ -55,10 +56,8 @@ export function NewPayee({ halls }: { halls: Hall[] }) {
         {kind === "hall" ? (
           <label>
             Hall
-            <select value={hallId} onChange={(e) => setHallId(e.target.value)}>
-              {halls.length === 0 && <option value="">(no halls seeded)</option>}
-              {halls.map((h) => <option key={h.hallId} value={h.hallId}>{h.name}</option>)}
-            </select>
+            <HallSelect value={hallId} onChange={setHallId}
+              halls={halls} anyLabel={halls.length === 0 ? "(no halls seeded)" : "Select hall…"} />
           </label>
         ) : (
           <label>

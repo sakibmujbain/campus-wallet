@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { DU_SESSIONS } from "@/lib/du";
-import { DeptSelect } from "@/components/dept-select";
+import { DeptSelect, HallSelect, SessionSelect } from "@/components/combo";
 
 interface HallOption { hallId: number; name: string }
 
@@ -86,17 +86,11 @@ export function LoginForm({ halls }: { halls: HallOption[] }) {
           <div className="row">
             <label>
               Hall
-              <select value={hallId} onChange={(e) => setHallId(e.target.value)} required>
-                <option value="" disabled>Select hall…</option>
-                {halls.map((h) => <option key={h.hallId} value={h.hallId}>{h.name}</option>)}
-              </select>
+              <HallSelect value={hallId} onChange={setHallId} halls={halls} anyLabel="Select hall…" />
             </label>
             <label>
               Session
-              <select value={session} onChange={(e) => setSession(e.target.value)} required>
-                <option value="" disabled>Select session…</option>
-                {DU_SESSIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
+              <SessionSelect value={session} onChange={setSession} sessions={DU_SESSIONS} anyLabel="Select session…" />
             </label>
           </div>
         </>

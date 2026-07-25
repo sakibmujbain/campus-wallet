@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DU_SESSIONS } from "@/lib/du";
+import { SessionSelect } from "@/components/combo";
 
 /** A student may be CR for exactly ONE session. `hasCr` is passed separately from `crScope`
  *  because a legacy grant can carry a null scope — presence, not the label, is what closes
@@ -66,10 +67,8 @@ export function RoleRequestForm({ hasCr = false, crScope = null }: { hasCr?: boo
         <label>
           {scopeLabel}
           {role === "cr" ? (
-            <select value={scopeRef} onChange={(e) => setScopeRef(e.target.value)}>
-              <option value="">Select a session…</option>
-              {DU_SESSIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
+            <SessionSelect value={scopeRef} onChange={setScopeRef}
+              sessions={DU_SESSIONS} anyLabel="Select a session…" />
           ) : (
             <input value={scopeRef} onChange={(e) => setScopeRef(e.target.value)} placeholder="Exam office" />
           )}

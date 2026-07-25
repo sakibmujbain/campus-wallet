@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DU_SESSIONS } from "@/lib/du";
-import { DeptSelect } from "@/components/dept-select";
+import { DeptSelect, HallSelect, SessionSelect } from "@/components/combo";
 
 interface Scope { scopeKind: string; scopeRef: string }
 interface HallOption { hallId: number; name: string }
@@ -89,9 +89,7 @@ export function NewDriveForm({ scopes, isAdmin, halls }: { scopes: Scope[]; isAd
 
       <label>
         Session
-        <select value={session} onChange={(e) => setSession(e.target.value)}>
-          {sessionList.map((s) => <option key={s} value={s}>{s}</option>)}
-        </select>
+        <SessionSelect value={session} onChange={setSession} sessions={sessionList} allowClear={false} />
       </label>
 
       <div>
@@ -115,10 +113,7 @@ export function NewDriveForm({ scopes, isAdmin, halls }: { scopes: Scope[]; isAd
             </label>
             <label>
               Hall
-              <select value={hallId} onChange={(e) => setHallId(e.target.value)}>
-                <option value="">Any hall</option>
-                {halls.map((h) => <option key={h.hallId} value={h.hallId}>{h.name}</option>)}
-              </select>
+              <HallSelect value={hallId} onChange={setHallId} halls={halls} />
             </label>
           </div>
         )}

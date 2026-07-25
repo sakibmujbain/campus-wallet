@@ -8,7 +8,7 @@ import { Progress } from "@/components/progress";
 import { FormattedText, tidyText } from "@/components/rich-text";
 import { Icon } from "@/components/icon";
 import { DU_SESSIONS } from "@/lib/du";
-import { DeptSelect } from "@/components/dept-select";
+import { DeptSelect, HallSelect, SessionSelect } from "@/components/combo";
 
 interface DriveDetail {
   eventId: number; name: string; batch: string | null; status: string;
@@ -327,16 +327,10 @@ function RosterAdd({
             <DeptSelect value={department} onChange={setDepartment} />
           </label>
           <label>Hall
-            <select value={hallId} onChange={(e) => setHallId(e.target.value)}>
-              <option value="">Any hall</option>
-              {halls.map((h) => <option key={h.hallId} value={h.hallId}>{h.name}</option>)}
-            </select>
+            <HallSelect value={hallId} onChange={setHallId} halls={halls} />
           </label>
           <label>Session
-            <select value={session} onChange={(e) => setSession(e.target.value)}>
-              <option value="">Any session</option>
-              {DU_SESSIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
+            <SessionSelect value={session} onChange={setSession} sessions={DU_SESSIONS} />
           </label>
         </div>
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-end", flexWrap: "wrap", marginTop: "0.75rem" }}>

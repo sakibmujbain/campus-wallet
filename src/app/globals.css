@@ -158,6 +158,11 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--a
 .choice:hover { border-color: var(--secondary); }
 .choice.is-sel { border-color: var(--accent-deep); background: var(--accent-weak); }
 .choice > input { flex: none; width: auto; margin: 0.15rem 0 0; padding: 0; border: 0; background: none; box-shadow: none; accent-color: var(--accent-deep); }
+/* plain-English readback of the roster filters + how many students they match */
+.filter-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem;
+  margin: 0 0 0.25rem; font-size: 0.85rem; color: var(--secondary); }
+.filter-count { font-family: var(--mono); font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.5rem;
+  border-radius: var(--r-full); background: var(--accent-weak); color: var(--accent-ink); }
 .choice-title { display: block; font-weight: 600; font-size: 0.92rem; color: var(--ink); }
 .choice-desc { display: block; font-size: 0.8rem; color: var(--muted); margin-top: 0.1rem; }
 

@@ -131,26 +131,54 @@ export async function createDrive(
   d: {
     name: string; scopeKind: string; scopeRef: string; perHead: string;
     deadline: string | null; description: string | null;
-    autoRoster?: boolean; department?: string | null; hallId?: number | null;
+    autoRoster?: boolean; department?: string | null; hallId?: number | null; session?: string | null;
   },
 ): Promise<number> {
-  // Always open the drive empty, then (cohort mode) fill it via the same filtered-roster
-  // path the console uses: session = scope, optionally narrowed by department and/or hall.
-  // Both run in one transaction so a roster failure can't leave an orphaned drive.
+  // scopeRef AUTHORISES the drive (the organizer's granted batch scope). Who lands on the
+  // roster is a separate question — department, hall and session are independent filters,
+  // so a departmental tour can span every session and a hall drive every department.
+  // Everything runs in one transaction so a roster failure can't leave an orphaned drive.
+  const dept = d.department ?? null;
+  const hall = d.hallId ?? null;
+  const session = d.session ?? null;
+
   return withTransaction(async (c) => {
     const { rows } = await c.query(
       `SELECT create_empty_drive($1,$2,$3,$4,$5::numeric,$6::date,$7) AS id`,
       [actorId, d.name, d.scopeKind, d.scopeRef, d.perHead, d.deadline, d.description],
     );
     const eventId = Number(rows[0].id);
-    if (d.autoRoster !== false) {
+
+    // create_empty_drive stamps event.batch from the authorising scope; correct it to the
+    // roster's actual session (or clear it when the drive deliberately spans sessions).
+    if (session !== d.scopeRef) {
+      await c.query(`SELECT set_drive_batch($1,$2,$3)`, [actorId, eventId, session]);
+    }
+
+    // add_filtered_to_roster requires at least one filter, so only call it when there is one.
+    if (d.autoRoster !== false && (dept || hall || session)) {
       await c.query(
         `SELECT add_filtered_to_roster($1,$2,$3::numeric,$4,$5::bigint,$6)`,
-        [actorId, eventId, d.perHead, d.department ?? null, d.hallId ?? null, d.scopeRef],
+        [actorId, eventId, d.perHead, dept, hall, session],
       );
     }
     return eventId;
   }, { userId: actorId });
+}
+
+/** How many students match a department / hall / session combination — powers the "N students
+ *  match" hint so an organizer sees the size of a roster before committing to it. Mirrors the
+ *  predicate inside add_filtered_to_roster exactly. */
+export async function countMatchingStudents(f: CohortFilters): Promise<number> {
+  const { rows } = await pool.query(
+    `SELECT count(*)::int AS n
+       FROM student s
+      WHERE (NULLIF(trim($1), '') IS NULL OR s.department = $1)
+        AND ($2::bigint IS NULL              OR s.hall_id   = $2)
+        AND (NULLIF(trim($3), '') IS NULL OR s.batch     = $3)`,
+    [f.department ?? null, f.hallId ?? null, f.session ?? null],
+  );
+  return Number(rows[0].n);
 }
 
 export async function addToRoster(actorId: number, eventId: number, studentId: number, expected: string): Promise<void> {

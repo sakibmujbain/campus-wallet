@@ -61,7 +61,10 @@ export default async function Profile() {
         <div className="card">
           <h2>Request a role</h2>
           <p className="sub" style={{ marginTop: 0 }}>An admin will review and approve.</p>
-          <RoleRequestForm />
+          <RoleRequestForm
+            hasCr={viewer.grants.some((g) => g.capability === "cr")}
+            crScope={viewer.grants.find((g) => g.capability === "cr")?.scopeRef ?? null}
+          />
         </div>
       )}
 

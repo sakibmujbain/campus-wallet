@@ -22,6 +22,8 @@ interface HallOption { hallId: number; name: string }
 interface Filters { department: string; hallId: string; session: string }
 
 const STATUS_BADGE: Record<string, string> = { open: "badge-ok", closed: "badge-warn", settled: "kind", cancelled: "badge-warn" };
+/** Must match the API's zod cap and update_drive_description()'s check (migration 0019). */
+const DESC_MAX = 2000;
 
 export function DriveConsole({ drive, roster, destinations, halls }: { drive: DriveDetail; roster: RosterRow[]; destinations: Target[]; halls: HallOption[] }) {
   const router = useRouter();
@@ -250,22 +252,30 @@ function DriveDescription({ description, busy, saving, onSave }: {
     );
   }
 
+  // Tidying inserts breaks, so it ADDS characters — and setText() bypasses the textarea's
+  // maxLength (that only limits typing/pasting). Without these guards a 2000-char paste
+  // could be tidied over the cap and then rejected by the API with a raw validator message.
   const tidied = tidyText(text);
+  const overCap = text.length > DESC_MAX;
+  const canTidy = tidied !== text && tidied.length <= DESC_MAX;
   return (
     <div className="desc-block">
       <label>
         Description
-        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} maxLength={2000}
+        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} maxLength={DESC_MAX}
           placeholder="Itinerary, what's included, how to pay…" />
-        <span className="kind" style={{ justifySelf: "end", color: text.length > 1900 ? "var(--bad)" : "var(--muted)" }}>
-          {text.length}/2000
+        <span className="kind" style={{ justifySelf: "end", color: overCap || text.length > 1900 ? "var(--bad)" : "var(--muted)" }}>
+          {text.length}/{DESC_MAX}
         </span>
       </label>
       <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.6rem" }}>
-        <button type="button" disabled={busy} onClick={save}>{saving ? "Saving…" : "Save"}</button>
+        <button type="button" disabled={busy || overCap} title={overCap ? `Too long — trim to ${DESC_MAX} characters` : undefined}
+          onClick={save}>{saving ? "Saving…" : "Save"}</button>
         <button type="button" className="btn-ghost" disabled={busy} onClick={() => setEditing(false)}>Cancel</button>
-        <button type="button" className="btn-ghost" disabled={busy || tidied === text}
-          title="Break the text into paragraphs at day markers and labels"
+        <button type="button" className="btn-ghost" disabled={busy || !canTidy}
+          title={tidied.length > DESC_MAX
+            ? `Tidying would push this past ${DESC_MAX} characters — trim the text first`
+            : "Break the text into paragraphs at day markers and labels"}
           onClick={() => setText(tidied)}>Tidy up</button>
       </div>
     </div>

@@ -18,7 +18,11 @@ const Body = z.object({
   scopeRef: z.string().min(1).max(80),
   perHead: decimal,
   deadline: isoDate.optional().nullable(),
-  description: z.string().max(500).optional().nullable(),
+  description: z.string().max(2000).optional().nullable(),
+  // false = open an empty drive and hand-pick the roster on the console
+  autoRoster: z.boolean().optional().default(true),
+  // cohort mode only: narrow the auto-roster to a single department (null = whole session)
+  department: z.string().max(120).optional().nullable(),
 });
 
 export async function POST(req: Request) {
@@ -33,7 +37,8 @@ export async function POST(req: Request) {
   try {
     const eventId = await createDrive(v.appUserId, {
       name: d.name, scopeKind: d.scopeKind, scopeRef: d.scopeRef, perHead: d.perHead,
-      deadline: d.deadline ?? null, description: d.description ?? null,
+      deadline: d.deadline ?? null, description: d.description ?? null, autoRoster: d.autoRoster,
+      department: d.department ?? null,
     });
     return NextResponse.json({ ok: true, eventId });
   } catch (err) {

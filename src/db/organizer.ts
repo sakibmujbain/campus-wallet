@@ -128,14 +128,28 @@ export async function searchRosterCandidates(eventId: number, q: string, f: Coho
 
 export async function createDrive(
   actorId: number,
-  d: { name: string; scopeKind: string; scopeRef: string; perHead: string; deadline: string | null; description: string | null },
+  d: {
+    name: string; scopeKind: string; scopeRef: string; perHead: string;
+    deadline: string | null; description: string | null;
+    autoRoster?: boolean; department?: string | null;
+  },
 ): Promise<number> {
+  // Always open the drive empty, then (cohort mode) fill it via the same filtered-roster
+  // path the console uses: session = scope, optionally narrowed to a single department.
+  // Both run in one transaction so a roster failure can't leave an orphaned drive.
   return withTransaction(async (c) => {
     const { rows } = await c.query(
-      `SELECT create_drive($1,$2,$3,$4,$5::numeric,$6::date,$7) AS id`,
+      `SELECT create_empty_drive($1,$2,$3,$4,$5::numeric,$6::date,$7) AS id`,
       [actorId, d.name, d.scopeKind, d.scopeRef, d.perHead, d.deadline, d.description],
     );
-    return Number(rows[0].id);
+    const eventId = Number(rows[0].id);
+    if (d.autoRoster !== false) {
+      await c.query(
+        `SELECT add_filtered_to_roster($1,$2,$3::numeric,$4,$5::bigint,$6)`,
+        [actorId, eventId, d.perHead, d.department ?? null, null, d.scopeRef],
+      );
+    }
+    return eventId;
   }, { userId: actorId });
 }
 

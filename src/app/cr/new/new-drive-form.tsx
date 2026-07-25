@@ -2,38 +2,36 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { DU_SESSIONS, DU_DEPARTMENT_GROUPS } from "@/lib/du";
 
 interface Scope { scopeKind: string; scopeRef: string }
+type RosterMode = "everyone" | "department" | "pick";
 
 export function NewDriveForm({ scopes, isAdmin }: { scopes: Scope[]; isAdmin: boolean }) {
   const router = useRouter();
-  // Options: the granted scopes, plus a "custom" entry for admins (who cover every scope).
-  const CUSTOM = "__custom__";
-  const options = scopes.map((s, i) => ({ value: String(i), label: `${s.scopeKind}: ${s.scopeRef}`, ...s }));
-  const hasGrantedScopes = options.length > 0;
-  const [sel, setSel] = useState(options[0]?.value ?? (isAdmin ? CUSTOM : ""));
+  // Sessions this organizer may run a drive for: admins cover every session; everyone
+  // else is limited to the batch scopes they were granted.
+  const sessionList = isAdmin
+    ? [...DU_SESSIONS]
+    : [...new Set(scopes.map((s) => s.scopeRef).filter(Boolean))];
 
   const [name, setName] = useState("");
+  const [session, setSession] = useState(sessionList[0] ?? "");
+  const [rosterMode, setRosterMode] = useState<RosterMode>("everyone");
+  const [department, setDepartment] = useState("");
   const [perHead, setPerHead] = useState("");
   const [deadline, setDeadline] = useState("");
   const [description, setDescription] = useState("");
-  // custom-scope fields (admin only)
-  const [customKind] = useState("batch");
-  const [customRef, setCustomRef] = useState("");
-
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  // With no granted scopes (e.g. an admin), skip the redundant one-item dropdown and
-  // let them choose batch/club directly.
-  const usingCustom = !hasGrantedScopes || sel === CUSTOM;
-
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const chosen = options.find((o) => o.value === sel);
-    const scopeKind = usingCustom ? customKind : chosen?.scopeKind;
-    const scopeRef = usingCustom ? customRef.trim() : chosen?.scopeRef;
-    if (!scopeKind || !scopeRef) { setMsg({ ok: false, text: "Pick or enter a scope." }); return; }
+    if (!session) { setMsg({ ok: false, text: "Pick a session." }); return; }
+    if (rosterMode === "department" && !department) {
+      setMsg({ ok: false, text: "Choose a department, or switch to “Everyone in this session”." });
+      return;
+    }
 
     setBusy(true);
     setMsg(null);
@@ -41,7 +39,16 @@ export function NewDriveForm({ scopes, isAdmin }: { scopes: Scope[]; isAdmin: bo
       const res = await fetch("/api/cr/drives", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, scopeKind, scopeRef, perHead, deadline: deadline || null, description: description || null }),
+        body: JSON.stringify({
+          name,
+          scopeKind: "batch",
+          scopeRef: session,
+          perHead,
+          deadline: deadline || null,
+          description: description || null,
+          autoRoster: rosterMode !== "pick",
+          department: rosterMode === "department" ? department : null,
+        }),
       });
       const d = await res.json();
       if (res.ok && d.ok) {
@@ -57,9 +64,15 @@ export function NewDriveForm({ scopes, isAdmin }: { scopes: Scope[]; isAdmin: bo
     }
   }
 
-  if (options.length === 0 && !isAdmin) {
+  if (sessionList.length === 0) {
     return <p style={{ color: "var(--muted)", margin: 0 }}>You don&apos;t have an organizer grant with a batch scope yet. Request one from your <a href="/profile">profile</a>.</p>;
   }
+
+  const choices: { mode: RosterMode; title: string; desc: string }[] = [
+    { mode: "everyone", title: `Everyone in session ${session}`, desc: "every student in this session is rostered at the amount below" },
+    { mode: "department", title: "One department in this session", desc: "only students of the department you choose" },
+    { mode: "pick", title: "Let me add people myself", desc: "start empty, then add by department, hall, or name on the next screen" },
+  ];
 
   return (
     <form onSubmit={submit}>
@@ -68,26 +81,44 @@ export function NewDriveForm({ scopes, isAdmin }: { scopes: Scope[]; isAdmin: bo
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="CSE Batch Picnic" required />
       </label>
 
-      {hasGrantedScopes && (
-        <label>
-          Scope (who is on the roster)
-          <select value={sel} onChange={(e) => setSel(e.target.value)}>
-            {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            {isAdmin && <option value={CUSTOM}>Custom scope…</option>}
-          </select>
-        </label>
-      )}
+      <label>
+        Session
+        <select value={session} onChange={(e) => setSession(e.target.value)}>
+          {sessionList.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+      </label>
 
-      {usingCustom && (
-        <label>
-          Batch / session (who is on the roster)
-          <input value={customRef} onChange={(e) => setCustomRef(e.target.value)} placeholder="e.g. 2023-24" />
-        </label>
-      )}
+      <div>
+        <span className="field-label">Who&apos;s on the roster?</span>
+        <div className="choice-group">
+          {choices.map((c) => (
+            <label key={c.mode} className={`choice ${rosterMode === c.mode ? "is-sel" : ""}`}>
+              <input type="radio" name="rosterMode" checked={rosterMode === c.mode} onChange={() => setRosterMode(c.mode)} />
+              <span>
+                <span className="choice-title">{c.title}</span>
+                <span className="choice-desc">{c.desc}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+        {rosterMode === "department" && (
+          <label style={{ marginTop: "0.6rem" }}>
+            Department
+            <select value={department} onChange={(e) => setDepartment(e.target.value)}>
+              <option value="">Select a department…</option>
+              {DU_DEPARTMENT_GROUPS.map((g) => (
+                <optgroup key={g.faculty} label={g.faculty}>
+                  {g.departments.map((d) => <option key={d} value={d}>{d}</option>)}
+                </optgroup>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
 
       <div className="row">
         <label>
-          Per-head amount (৳)
+          Amount per person (৳)
           <input value={perHead} onChange={(e) => setPerHead(e.target.value)} inputMode="decimal" placeholder="500" required />
         </label>
         <label>
@@ -98,7 +129,11 @@ export function NewDriveForm({ scopes, isAdmin }: { scopes: Scope[]; isAdmin: bo
 
       <label>
         Description (optional)
-        <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Annual picnic at Cox's Bazar" />
+        <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} maxLength={2000}
+          placeholder="Annual picnic at Cox's Bazar — itinerary, what's included, etc." />
+        <span className="kind" style={{ justifySelf: "end", color: description.length > 1900 ? "var(--bad)" : "var(--muted)" }}>
+          {description.length}/2000
+        </span>
       </label>
 
       <button type="submit" disabled={busy}>{busy ? "Creating…" : "Create drive"}</button>

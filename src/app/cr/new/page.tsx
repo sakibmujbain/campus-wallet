@@ -16,8 +16,8 @@ export default async function NewDrive() {
       <div className="eyebrow">Organizer</div>
       <h1>New collection drive</h1>
       <p className="sub">
-        Pick a scope you were granted; the roster is auto-populated from that cohort at a flat per-head amount
-        (you can fine-tune it afterward). A batch drive rosters everyone in that session cohort.
+        Name the drive, pick the session it&apos;s for, and choose who&apos;s on the roster — the whole session,
+        one department, or a list you build yourself on the next screen.
       </p>
       <div className="card">
         <NewDriveForm scopes={scopes} isAdmin={v!.isAdmin} />

@@ -139,13 +139,27 @@ code {
 form { display: grid; gap: 0.85rem; }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
 label { display: grid; gap: 0.3rem; font-size: 0.82rem; color: var(--secondary); font-weight: 500; }
-select, input {
+select, input, textarea {
   font: inherit; padding: 0.6rem 0.7rem; border-radius: var(--r-md);
   border: 1px solid var(--border-strong); background: var(--surface); color: var(--ink);
   transition: border-color var(--dur-fast) var(--ease-out-quick), box-shadow var(--dur-fast) var(--ease-out-quick);
 }
-select:focus, input:focus { outline: none; border-color: var(--accent-deep);
+textarea { min-height: 4.5rem; line-height: 1.5; resize: vertical; }
+select:focus, input:focus, textarea:focus { outline: none; border-color: var(--accent-deep);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 45%, transparent); }
+
+/* radio-card choices (e.g. the drive roster picker). Resets the global input border/
+   padding that would otherwise render the radio dot as a box, and cards each option. */
+.field-label { display: block; font-size: 0.82rem; color: var(--secondary); font-weight: 500; margin-bottom: 0.4rem; }
+.choice-group { display: grid; gap: 0.5rem; }
+.choice { display: flex; gap: 0.65rem; align-items: flex-start; padding: 0.7rem 0.85rem; margin: 0;
+  border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out-quick), background var(--dur-fast) var(--ease-out-quick); }
+.choice:hover { border-color: var(--secondary); }
+.choice.is-sel { border-color: var(--accent-deep); background: var(--accent-weak); }
+.choice > input { flex: none; width: auto; margin: 0.15rem 0 0; padding: 0; border: 0; background: none; box-shadow: none; accent-color: var(--accent-deep); }
+.choice-title { display: block; font-weight: 600; font-size: 0.92rem; color: var(--ink); }
+.choice-desc { display: block; font-size: 0.8rem; color: var(--muted); margin-top: 0.1rem; }
 
 /* search-and-add typeahead dropdown (drive roster) */
 .typeahead { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 30; margin: 0;

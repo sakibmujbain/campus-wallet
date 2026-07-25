@@ -5,9 +5,12 @@ import { useState } from "react";
 import { DU_SESSIONS, DU_DEPARTMENT_GROUPS } from "@/lib/du";
 
 interface Scope { scopeKind: string; scopeRef: string }
-type RosterMode = "everyone" | "department" | "pick";
+interface HallOption { hallId: number; name: string }
+/** "filtered" narrows the session by department and/or hall — the same combination the
+ *  drive console's "add all matching" supports, so both paths mean the same thing. */
+type RosterMode = "everyone" | "filtered" | "pick";
 
-export function NewDriveForm({ scopes, isAdmin }: { scopes: Scope[]; isAdmin: boolean }) {
+export function NewDriveForm({ scopes, isAdmin, halls }: { scopes: Scope[]; isAdmin: boolean; halls: HallOption[] }) {
   const router = useRouter();
   // Sessions this organizer may run a drive for: admins cover every session; everyone
   // else is limited to the batch scopes they were granted.
@@ -19,6 +22,7 @@ export function NewDriveForm({ scopes, isAdmin }: { scopes: Scope[]; isAdmin: bo
   const [session, setSession] = useState(sessionList[0] ?? "");
   const [rosterMode, setRosterMode] = useState<RosterMode>("everyone");
   const [department, setDepartment] = useState("");
+  const [hallId, setHallId] = useState("");
   const [perHead, setPerHead] = useState("");
   const [deadline, setDeadline] = useState("");
   const [description, setDescription] = useState("");
@@ -28,8 +32,8 @@ export function NewDriveForm({ scopes, isAdmin }: { scopes: Scope[]; isAdmin: bo
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!session) { setMsg({ ok: false, text: "Pick a session." }); return; }
-    if (rosterMode === "department" && !department) {
-      setMsg({ ok: false, text: "Choose a department, or switch to “Everyone in this session”." });
+    if (rosterMode === "filtered" && !department && !hallId) {
+      setMsg({ ok: false, text: "Choose a department or a hall — or switch to “Everyone in this session”." });
       return;
     }
 
@@ -47,7 +51,8 @@ export function NewDriveForm({ scopes, isAdmin }: { scopes: Scope[]; isAdmin: bo
           deadline: deadline || null,
           description: description || null,
           autoRoster: rosterMode !== "pick",
-          department: rosterMode === "department" ? department : null,
+          department: rosterMode === "filtered" && department ? department : null,
+          hallId: rosterMode === "filtered" && hallId ? Number(hallId) : null,
         }),
       });
       const d = await res.json();
@@ -70,7 +75,7 @@ export function NewDriveForm({ scopes, isAdmin }: { scopes: Scope[]; isAdmin: bo
 
   const choices: { mode: RosterMode; title: string; desc: string }[] = [
     { mode: "everyone", title: `Everyone in session ${session}`, desc: "every student in this session is rostered at the amount below" },
-    { mode: "department", title: "One department in this session", desc: "only students of the department you choose" },
+    { mode: "filtered", title: "Only a department or hall", desc: "narrow this session by department, by hall, or both together" },
     { mode: "pick", title: "Let me add people myself", desc: "start empty, then add by department, hall, or name on the next screen" },
   ];
 
@@ -101,18 +106,27 @@ export function NewDriveForm({ scopes, isAdmin }: { scopes: Scope[]; isAdmin: bo
             </label>
           ))}
         </div>
-        {rosterMode === "department" && (
-          <label style={{ marginTop: "0.6rem" }}>
-            Department
-            <select value={department} onChange={(e) => setDepartment(e.target.value)}>
-              <option value="">Select a department…</option>
-              {DU_DEPARTMENT_GROUPS.map((g) => (
-                <optgroup key={g.faculty} label={g.faculty}>
-                  {g.departments.map((d) => <option key={d} value={d}>{d}</option>)}
-                </optgroup>
-              ))}
-            </select>
-          </label>
+        {rosterMode === "filtered" && (
+          <div className="row" style={{ marginTop: "0.6rem" }}>
+            <label>
+              Department
+              <select value={department} onChange={(e) => setDepartment(e.target.value)}>
+                <option value="">Any department</option>
+                {DU_DEPARTMENT_GROUPS.map((g) => (
+                  <optgroup key={g.faculty} label={g.faculty}>
+                    {g.departments.map((d) => <option key={d} value={d}>{d}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+            </label>
+            <label>
+              Hall
+              <select value={hallId} onChange={(e) => setHallId(e.target.value)}>
+                <option value="">Any hall</option>
+                {halls.map((h) => <option key={h.hallId} value={h.hallId}>{h.name}</option>)}
+              </select>
+            </label>
+          </div>
         )}
       </div>
 

@@ -131,11 +131,11 @@ export async function createDrive(
   d: {
     name: string; scopeKind: string; scopeRef: string; perHead: string;
     deadline: string | null; description: string | null;
-    autoRoster?: boolean; department?: string | null;
+    autoRoster?: boolean; department?: string | null; hallId?: number | null;
   },
 ): Promise<number> {
   // Always open the drive empty, then (cohort mode) fill it via the same filtered-roster
-  // path the console uses: session = scope, optionally narrowed to a single department.
+  // path the console uses: session = scope, optionally narrowed by department and/or hall.
   // Both run in one transaction so a roster failure can't leave an orphaned drive.
   return withTransaction(async (c) => {
     const { rows } = await c.query(
@@ -146,7 +146,7 @@ export async function createDrive(
     if (d.autoRoster !== false) {
       await c.query(
         `SELECT add_filtered_to_roster($1,$2,$3::numeric,$4,$5::bigint,$6)`,
-        [actorId, eventId, d.perHead, d.department ?? null, null, d.scopeRef],
+        [actorId, eventId, d.perHead, d.department ?? null, d.hallId ?? null, d.scopeRef],
       );
     }
     return eventId;

@@ -1,4 +1,5 @@
 import { requireViewer } from "@/lib/viewer";
+import { listHalls } from "@/db/reference";
 import { NewDriveForm } from "./new-drive-form";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +11,7 @@ export default async function NewDrive() {
     .filter((g) => g.capability === "cr" || g.capability === "club_exec")
     .map((g) => ({ scopeKind: g.scopeKind, scopeRef: g.scopeRef ?? "" }))
     .filter((s) => s.scopeKind === "batch" && s.scopeRef !== "");
+  const halls = await listHalls();
 
   return (
     <main style={{ maxWidth: "40rem" }}>
@@ -17,10 +19,10 @@ export default async function NewDrive() {
       <h1>New collection drive</h1>
       <p className="sub">
         Name the drive, pick the session it&apos;s for, and choose who&apos;s on the roster — the whole session,
-        one department, or a list you build yourself on the next screen.
+        a department and/or hall within it, or a list you build yourself on the next screen.
       </p>
       <div className="card">
-        <NewDriveForm scopes={scopes} isAdmin={v!.isAdmin} />
+        <NewDriveForm scopes={scopes} isAdmin={v!.isAdmin} halls={halls} />
       </div>
     </main>
   );

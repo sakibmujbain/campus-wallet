@@ -32,6 +32,16 @@
   --warn: #b9770f;  --warn-weak: #fbeec6;
   --info: #2b6cb0;
 
+  /* ── chart palette (payment status) ──
+     Validated with the dataviz checker against the card surface: lightness band,
+     chroma floor, CVD separation and contrast all PASS. The obvious green/amber/red
+     failed hard — red↔amber sits at ΔE 12.5 for NORMAL vision (floor 15) and 4.4 for
+     deuteranopes — so "partly paid" is blue, not amber. Never colour alone: every
+     segment is labelled and counted in the legend and repeated in the table. */
+  --dv-good: #0f8a4f;
+  --dv-info: #2b6cb0;
+  --dv-bad:  #d1402c;
+
   /* ── type ── */
   --font-display: var(--font-display), "Bricolage Grotesque", "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
   --sans:  var(--font-body), "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -80,6 +90,12 @@
     --bad:  #f0705e;  --bad-weak:  #2e1614;
     --warn: #f0b429;  --warn-weak: #2c220c;
     --info: #4aa3e0;
+
+    /* Dark steps are DARKER than the light ones, not lighter: the validator's dark band
+       is L 0.48–0.67, so the light-theme semantic tokens blow out on the blackboard. */
+    --dv-good: #28a865;
+    --dv-info: #3f87cc;
+    --dv-bad:  #d9614e;
 
     --shadow-xs: 0 1px 2px hsl(0 0% 0% / .3);
     --shadow-sm: 0 1px 2px hsl(0 0% 0% / .3), 0 2px 4px hsl(0 0% 0% / .25);
@@ -175,6 +191,51 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--a
 .desc-rich li { margin: 0.15rem 0; }
 .desc-block { margin: 0 0 1.25rem; }
 .desc-block .desc-rich { margin-bottom: 0.5rem; }
+
+/* ── my-collections: drive detail + analytics ───────────────────────────── */
+.deadline { display: flex; align-items: center; gap: 0.4rem; margin: 0.15rem 0 0.6rem;
+  font-size: 0.85rem; color: var(--secondary); }
+.deadline.is-soon { color: var(--bad); font-weight: 600; }
+
+/* the student's own position — the figure the page exists to answer */
+.my-share { display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; align-items: flex-end;
+  justify-content: space-between; padding: 0.9rem 1rem; margin: 0.4rem 0 0.9rem;
+  background: var(--surface-2); border-radius: var(--r-md); }
+.my-share > div { display: grid; gap: 0.15rem; }
+.share-value { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700;
+  letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+
+.drive-stats { display: grid; grid-template-columns: auto 1fr; gap: 1.25rem 1.75rem;
+  align-items: center; padding: 1rem 0 0.9rem; border-top: 1px solid var(--border); }
+.drive-chart { display: flex; align-items: center; gap: 1rem; }
+.drive-figures { display: grid; gap: 0.5rem; min-width: 0; }
+.drive-figures > div { display: grid; gap: 0.15rem; }
+@media (max-width: 34rem) { .drive-stats { grid-template-columns: 1fr; } }
+
+.donut-value { font-family: var(--font-display); font-size: 1.35rem; font-weight: 700;
+  fill: var(--ink); font-variant-numeric: tabular-nums; }
+.donut-sub { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.08em;
+  text-transform: uppercase; fill: var(--muted); }
+
+.donut-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.35rem; }
+.donut-legend li { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; }
+.donut-legend .dv-label { color: var(--secondary); }
+.donut-legend .dv-num { margin-left: auto; font-family: var(--mono); font-weight: 700;
+  color: var(--ink); font-variant-numeric: tabular-nums; }
+.dv-dot { width: 0.7rem; height: 0.7rem; border-radius: 3px; flex: none; }
+.dv-dot.dv-good { background: var(--dv-good); }
+.dv-dot.dv-info { background: var(--dv-info); }
+.dv-dot.dv-bad  { background: var(--dv-bad); }
+
+/* status chip in the participant table — text, never colour alone */
+.dv-chip { display: inline-block; font-size: 0.72rem; font-weight: 600; white-space: nowrap;
+  padding: 0.15rem 0.5rem; border-radius: var(--r-full); border: 1px solid currentColor; }
+.dv-chip.dv-good { color: var(--dv-good); }
+.dv-chip.dv-info { color: var(--dv-info); }
+.dv-chip.dv-bad  { color: var(--dv-bad); }
+
+.participant-list { max-height: 18rem; overflow-y: auto; margin-top: 0.6rem; }
+.participant-list thead th { position: sticky; top: 0; background: var(--surface); z-index: 1; }
 
 /* search-and-add typeahead dropdown (drive roster) */
 .typeahead { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 30; margin: 0;

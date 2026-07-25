@@ -97,12 +97,7 @@ export default async function Dashboard() {
         <Link href="/my-events" className="feature">
           <Icon name="calendar" />
           <span className="feature-title">My collections</span>
-          <span className="feature-desc">Pay the batch drives you&apos;re on, and track what you owe.</span>
-        </Link>
-        <Link href="/events" className="feature">
-          <Icon name="receipt" />
-          <span className="feature-title">Events &amp; defaulters</span>
-          <span className="feature-desc">Track every batch drive&apos;s progress and see who still owes.</span>
+          <span className="feature-desc">Pay your batch drives, see who else is on them, and track progress.</span>
         </Link>
         <Link href="/savings" className="feature">
           <Icon name="shield" />

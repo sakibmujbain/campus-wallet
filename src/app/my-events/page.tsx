@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getStudent } from "@/lib/session";
-import { listMyEvents } from "@/db/myevents";
+import { listMyEvents, listMyEventParticipants } from "@/db/myevents";
 import { money } from "@/lib/format";
 import { MyEventsList } from "./my-events-list";
 
@@ -10,7 +10,10 @@ export default async function MyEvents() {
   const student = await getStudent();
   if (!student) redirect("/login");
 
-  const events = await listMyEvents(student.appUserId);
+  const [events, participants] = await Promise.all([
+    listMyEvents(student.appUserId),
+    listMyEventParticipants(student.appUserId),
+  ]);
   const owed = events
     .filter((e) => e.status === "open" && Number(e.outstanding) > 0)
     .reduce((s, e) => s + Number(e.outstanding), 0);
@@ -30,7 +33,7 @@ export default async function MyEvents() {
         </div>
       )}
 
-      <MyEventsList events={events} />
+      <MyEventsList events={events} participants={participants} />
     </main>
   );
 }

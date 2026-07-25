@@ -15,8 +15,10 @@ export function RoleRequestForm({ hasCr = false, crScope = null }: { hasCr?: boo
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const scopeKind = role === "cr" ? "batch" : role === "club_exec" ? "club" : "institution";
-  const scopeLabel = role === "cr" ? "Session" : role === "club_exec" ? "Club" : "Institution";
+  // Club Executive is retired — clubs were dropped in migration 0017, so the role could
+  // only ever produce a grant with nothing to scope to.
+  const scopeKind = role === "cr" ? "batch" : "institution";
+  const scopeLabel = role === "cr" ? "Session" : "Institution";
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -58,7 +60,6 @@ export function RoleRequestForm({ hasCr = false, crScope = null }: { hasCr?: boo
           Role
           <select value={role} onChange={(e) => { setRole(e.target.value); setScopeRef(""); }}>
             <option value="cr" disabled={hasCr}>Class Representative{hasCr ? " — already assigned" : ""}</option>
-            <option value="club_exec">Club Executive</option>
             <option value="institution">Institution staff</option>
           </select>
         </label>
@@ -70,8 +71,7 @@ export function RoleRequestForm({ hasCr = false, crScope = null }: { hasCr?: boo
               {DU_SESSIONS.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           ) : (
-            <input value={scopeRef} onChange={(e) => setScopeRef(e.target.value)}
-              placeholder={role === "club_exec" ? "Robotics Club" : "Exam office"} />
+            <input value={scopeRef} onChange={(e) => setScopeRef(e.target.value)} placeholder="Exam office" />
           )}
         </label>
       </div>

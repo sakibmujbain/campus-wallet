@@ -7,7 +7,8 @@ import { mapPgError } from "@/lib/format";
 export const runtime = "nodejs";
 
 const Body = z.object({
-  role: z.enum(["cr", "club_exec", "institution"]), // never admin
+  // never admin; club_exec is retired (clubs dropped in 0017) so it can't be requested
+  role: z.enum(["cr", "institution"]),
   scopeKind: z.string().max(20).optional().nullable(),
   scopeRef: z.string().max(80).optional().nullable(),
   justification: z.string().max(500).optional().nullable(),

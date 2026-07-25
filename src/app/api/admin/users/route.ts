@@ -9,6 +9,8 @@ export const runtime = "nodejs";
 const Body = z.object({
   action: z.enum(["promote", "demote", "department"]),
   targetId: z.coerce.number().int().positive(),
+  // club_exec stays in this enum so EXISTING grants remain revocable via "demote" —
+  // dropping it here would strand them permanently. It is refused for "promote" below.
   capability: z.enum(["cr", "club_exec", "institution", "admin"]).optional(),
   scopeKind: z.string().max(20).optional().nullable(),
   scopeRef: z.string().max(80).optional().nullable(),
@@ -27,6 +29,9 @@ export async function POST(req: Request) {
   try {
     if (d.action === "promote") {
       if (!d.capability) return NextResponse.json({ ok: false, error: "capability required" }, { status: 400 });
+      if (d.capability === "club_exec") {
+        return NextResponse.json({ ok: false, error: "the Club Executive role is retired — clubs were removed" }, { status: 400 });
+      }
       await promoteUser(v.appUserId, d.targetId, d.capability, d.scopeKind || "all", d.scopeRef || null);
     } else if (d.action === "demote") {
       if (!d.capability) return NextResponse.json({ ok: false, error: "capability required" }, { status: 400 });

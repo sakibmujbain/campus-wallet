@@ -115,7 +115,8 @@ function UserRow({ u, busy, onPromote, onDemote, onDept }: {
       </td>
       <td style={{ whiteSpace: "nowrap" }}>
         <select value={cap} onChange={(e) => setCap(e.target.value)}>
-          {["cr", "club_exec", "institution", "admin"].map((c) => <option key={c} value={c}>{c}</option>)}
+          {/* club_exec omitted: retired with clubs (0017). Existing grants stay revocable. */}
+          {["cr", "institution", "admin"].map((c) => <option key={c} value={c}>{c}</option>)}
         </select>{" "}
         <button onClick={() => onPromote(u.userId, cap)} disabled={busy !== null}>Grant</button>
       </td>

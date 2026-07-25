@@ -61,7 +61,7 @@ export default async function Dashboard() {
         <div className="hero-side">
           {student.duesCount > 0 && (
             <Link href="/dues" className="dues-nudge">
-              💳 You owe <strong>{money(student.duesTotal)}</strong> in {student.duesCount} due{student.duesCount > 1 ? "s" : ""} — pay now →
+              <Icon name="card" className="ico-inline" /> You owe <strong>{money(student.duesTotal)}</strong> in {student.duesCount} due{student.duesCount > 1 ? "s" : ""} — pay now →
             </Link>
           )}
           <div className="tiles hero-tiles">

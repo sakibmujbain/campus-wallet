@@ -6,6 +6,7 @@ import { money } from "@/lib/format";
 import { newIdem } from "@/lib/idem";
 import { Progress } from "@/components/progress";
 import { FormattedText, tidyText } from "@/components/rich-text";
+import { Icon } from "@/components/icon";
 import { DU_DEPARTMENT_GROUPS, DU_SESSIONS } from "@/lib/du";
 
 interface DriveDetail {
@@ -115,7 +116,7 @@ export function DriveConsole({ drive, roster, destinations, halls }: { drive: Dr
       <div className="card">
         <h2>Defaulters ({defaulters.length})</h2>
         {defaulters.length === 0 ? (
-          <p style={{ color: "var(--good)", margin: 0 }}>Everyone has paid in full. 🎉</p>
+          <p style={{ color: "var(--good)", margin: 0 }}><Icon name="check" className="ico-inline" /> Everyone has paid in full.</p>
         ) : (
           <>
             <p className="sub" style={{ marginTop: 0 }}>Send each unpaid student an in-app reminder with their outstanding balance.</p>

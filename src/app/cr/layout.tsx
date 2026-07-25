@@ -1,5 +1,6 @@
 import { requireViewer } from "@/lib/viewer";
 import { ConsoleNav } from "@/components/console-nav";
+import { Icon } from "@/components/icon";
 
 const LINKS = [
   { href: "/cr", label: "My drives" },
@@ -11,7 +12,7 @@ export default async function OrganizerLayout({ children }: { children: React.Re
   return (
     <>
       <div className="console-bar console-cr">
-        <span className="console-title">📣 Organizer console</span>
+        <span className="console-title"><Icon name="megaphone" className="ico-inline" />Organizer console</span>
         <ConsoleNav links={LINKS} />
       </div>
       {children}

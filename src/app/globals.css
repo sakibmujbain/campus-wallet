@@ -298,6 +298,11 @@ a.feature:hover { transform: translateY(-4px); border-color: var(--ink); box-sha
    color: var(--accent-ink)` for the accent tile. */
 .feature-icon { display: block; width: 24px; height: 24px; color: var(--secondary); }
 a.feature:hover .feature-icon { color: var(--ink); }
+
+/* the same line-icon set at text scale: .ico-inline sits in a sentence (sized in em so it
+   tracks the surrounding type), .ico-btn centres inside the round 2.25rem chrome buttons. */
+.ico-inline { display: inline-block; width: 1.05em; height: 1.05em; vertical-align: -0.16em; flex: none; }
+.ico-btn { display: block; width: 1.15rem; height: 1.15rem; }
 .feature-title { font-family: var(--font-display); font-weight: 600; font-size: 1rem; }
 .feature-desc { font-size: 0.85rem; color: var(--muted); }
 
@@ -362,7 +367,8 @@ main.dashboard .features { grid-template-columns: repeat(auto-fill, minmax(15.5r
 /* ── role consoles ──────────────────────────────────────────────────────── */
 .console-bar { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem 1rem; flex-wrap: wrap;
   padding: 0.6rem 1.25rem; background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: var(--shadow-xs); }
-.console-title { font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; color: var(--ink); }
+.console-title { font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; color: var(--ink);
+  display: inline-flex; align-items: center; gap: 0.45rem; }
 .console-nav { display: flex; gap: 0.2rem; font-size: 0.85rem; flex-wrap: wrap; }
 .console-nav a { color: var(--secondary); text-decoration: none; font-weight: 500; padding: 0.4rem 0.75rem; border-radius: var(--r-full);
   transition: background var(--dur-fast) var(--ease-out-quick), color var(--dur-fast); }

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { money } from "@/lib/format";
 import { newIdem } from "@/lib/idem";
 import { Progress } from "@/components/progress";
+import { Icon } from "@/components/icon";
 
 interface MyEvent {
   eventId: number; name: string; batch: string | null; status: string;
@@ -69,7 +70,7 @@ function EventCard({ e }: { e: MyEvent }) {
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.88rem", color: "var(--muted)", margin: "0.5rem 0 0.4rem" }}>
         <span>Paid {money(e.paid)} of {money(e.expected)}</span>
         <span className="num" style={{ color: out > 0 ? "var(--bad)" : "var(--good)" }}>
-          {out > 0 ? `${money(e.outstanding)} due` : "paid in full 🎉"}
+          {out > 0 ? `${money(e.outstanding)} due` : <><Icon name="check" className="ico-inline" /> paid in full</>}
         </span>
       </div>
       <Progress value={pct} label={`${e.name} — your contribution`} />

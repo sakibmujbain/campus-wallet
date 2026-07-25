@@ -1,6 +1,7 @@
 import { listDefaulters, listEventProgress } from "@/db/accounts";
 import { money } from "@/lib/format";
 import { Progress } from "@/components/progress";
+import { Icon } from "@/components/icon";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,7 @@ export default async function Events() {
                 Defaulters ({eventDefaulters.length})
               </h3>
               {eventDefaulters.length === 0 ? (
-                <p style={{ color: "var(--good)", fontSize: "0.9rem" }}>Everyone has paid in full. 🎉</p>
+                <p style={{ color: "var(--good)", fontSize: "0.9rem" }}><Icon name="check" className="ico-inline" /> Everyone has paid in full.</p>
               ) : (
                 <div className="scroll-x defaulter-list">
                   <table>

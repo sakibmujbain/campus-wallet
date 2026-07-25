@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { money } from "@/lib/format";
 import { newIdem } from "@/lib/idem";
+import { Icon } from "@/components/icon";
 
 interface Due {
   assessmentId: number;
@@ -19,7 +20,7 @@ export function DuesList({ dues }: { dues: Due[] }) {
   const [busy, setBusy] = useState<number | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  if (dues.length === 0) return <p style={{ color: "var(--good)" }}>You&apos;re all paid up 🎉</p>;
+  if (dues.length === 0) return <p style={{ color: "var(--good)" }}><Icon name="check" className="ico-inline" /> You&apos;re all paid up</p>;
 
   async function pay(id: number) {
     setBusy(id);

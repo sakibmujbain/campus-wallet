@@ -9,10 +9,11 @@ interface Scope { scopeKind: string; scopeRef: string }
 interface HallOption { hallId: number; name: string }
 export function NewDriveForm({ scopes, isAdmin, halls }: { scopes: Scope[]; isAdmin: boolean; halls: HallOption[] }) {
   const router = useRouter();
-  // The scope only AUTHORISES the drive (organizer_covers checks it). It does not decide
-  // who lands on the roster — that is the three independent filters below.
-  const scopeList = isAdmin ? [...DU_SESSIONS] : [...new Set(scopes.map((s) => s.scopeRef).filter(Boolean))];
-  const [scopeRef, setScopeRef] = useState(scopeList[0] ?? "");
+  // A student holds exactly one CR grant (one_cr_grant_per_user, migration 0020), so the
+  // authorising scope is never a choice — it is that grant. Admins short-circuit
+  // organizer_covers via is_admin(), so any session satisfies it for them. Either way
+  // it only authorises the drive; the roster comes from the filters below.
+  const grantedScope = scopes.map((s) => s.scopeRef).filter(Boolean)[0] ?? "";
 
   const [name, setName] = useState("");
   const [pickManually, setPickManually] = useState(false);
@@ -27,6 +28,9 @@ export function NewDriveForm({ scopes, isAdmin, halls }: { scopes: Scope[]; isAd
   const [match, setMatch] = useState<number | null>(null);
 
   const hasFilter = Boolean(department || hallId || session);
+  // Admins have no grant of their own; send the roster's session (or the newest one) so the
+  // required scopeRef is present — set_drive_batch relabels the drive afterwards regardless.
+  const scopeRef = grantedScope || session || DU_SESSIONS[0];
 
   // Live "N students match" so the size of the roster is visible before committing —
   // an empty match is otherwise only discovered after the drive exists.
@@ -49,7 +53,6 @@ export function NewDriveForm({ scopes, isAdmin, halls }: { scopes: Scope[]; isAd
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!scopeRef) { setMsg({ ok: false, text: "Pick the scope you're organizing under." }); return; }
     if (!pickManually && !hasFilter) {
       setMsg({ ok: false, text: "Choose at least one of department, hall or session — or start empty and add people yourself." });
       return;
@@ -88,7 +91,7 @@ export function NewDriveForm({ scopes, isAdmin, halls }: { scopes: Scope[]; isAd
     }
   }
 
-  if (scopeList.length === 0) {
+  if (!isAdmin && !grantedScope) {
     return <p style={{ color: "var(--muted)", margin: 0 }}>You don&apos;t have an organizer grant with a batch scope yet. Request one from your <a href="/profile">profile</a>.</p>;
   }
 
@@ -176,15 +179,6 @@ export function NewDriveForm({ scopes, isAdmin, halls }: { scopes: Scope[]; isAd
           {description.length}/2000
         </span>
       </label>
-
-      {/* Only meaningful when the organizer covers more than one scope (admins cover all). */}
-      {scopeList.length > 1 && (
-        <label>
-          Organizing under
-          <SessionSelect value={scopeRef} onChange={setScopeRef} sessions={scopeList} allowClear={false} />
-          <span className="kind" style={{ color: "var(--muted)" }}>The scope you were granted — it authorises the drive, it doesn&apos;t filter the roster.</span>
-        </label>
-      )}
 
       <button type="submit" disabled={busy}>{busy ? "Creating…" : "Create drive"}</button>
       {msg && <div className={`msg ${msg.ok ? "ok" : "err"}`}>{msg.text}</div>}

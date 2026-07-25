@@ -7,6 +7,7 @@ import { money, kycLabel, kycGuidance } from "@/lib/format";
 import { Bell } from "@/components/bell";
 import { Amount } from "@/components/amount";
 import { CoinDoodle } from "@/components/doodle";
+import { Icon } from "@/components/icon";
 
 export const dynamic = "force-dynamic";
 
@@ -79,37 +80,37 @@ export default async function Dashboard() {
       <h2 style={{ fontSize: "1rem", margin: "1.75rem 0 1rem" }}>What you can do</h2>
       <div className="features">
         <Link href="/dues" className="feature">
-          <span className="feature-icon">💳</span>
+          <Icon name="card" />
           <span className="feature-title">Pay dues</span>
           <span className="feature-desc">Exam, hall, and other fees assessed to you — pay the exact amount.</span>
         </Link>
         <Link href="/top-up" className="feature">
-          <span className="feature-icon">➕</span>
+          <Icon name="plus" />
           <span className="feature-title">Top up</span>
           <span className="feature-desc">Add balance to your spending wallet (instant demo cash-in).</span>
         </Link>
         <Link href="/hub" className="feature">
-          <span className="feature-icon">🏛</span>
+          <Icon name="bank" />
           <span className="feature-title">Campus Payment Hub</span>
           <span className="feature-desc">Pay exam fees, hall dues, and cafeteria tills — one tap, zero fees.</span>
         </Link>
         <Link href="/my-events" className="feature">
-          <span className="feature-icon">📅</span>
+          <Icon name="calendar" />
           <span className="feature-title">My collections</span>
           <span className="feature-desc">Pay the batch drives you&apos;re on, and track what you owe.</span>
         </Link>
         <Link href="/events" className="feature">
-          <span className="feature-icon">🧾</span>
+          <Icon name="receipt" />
           <span className="feature-title">Events &amp; defaulters</span>
           <span className="feature-desc">Track every batch drive&apos;s progress and see who still owes.</span>
         </Link>
         <Link href="/savings" className="feature">
-          <span className="feature-icon">🐖</span>
+          <Icon name="shield" />
           <span className="feature-title">Tuition Shield (round-ups)</span>
           <span className="feature-desc">Your locked savings, round-up history, and tune the step.</span>
         </Link>
         <Link href="/rewards" className="feature">
-          <span className="feature-icon">💎</span>
+          <Icon name="gem" />
           <span className="feature-title">Loyalty rewards</span>
           <span className="feature-desc">Redeem points back to BDT and climb the RANK() leaderboard.</span>
         </Link>
@@ -121,14 +122,14 @@ export default async function Dashboard() {
           <div className="features">
             {viewer.isAdmin && (
               <Link href="/admin" className="feature">
-                <span className="feature-icon">⚙️</span>
+                <Icon name="sliders" />
                 <span className="feature-title">Admin console</span>
                 <span className="feature-desc">Fee catalog, roles, KYC approvals, and system monitoring.</span>
               </Link>
             )}
             {(viewer.has("cr") || viewer.has("club_exec")) && (
               <Link href="/cr" className="feature">
-                <span className="feature-icon">📣</span>
+                <Icon name="megaphone" />
                 <span className="feature-title">Organizer console</span>
                 <span className="feature-desc">Create collection drives and chase defaulters.</span>
               </Link>

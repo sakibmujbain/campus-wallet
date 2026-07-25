@@ -291,7 +291,13 @@ td.num, th.num { text-align: right; font-family: var(--mono); }
   transition: transform var(--dur-base) var(--ease-out-quick), border-color var(--dur-base) var(--ease-out-quick), box-shadow var(--dur-base) var(--ease-out-quick); }
 a.feature:hover { transform: translateY(-4px); border-color: var(--ink); box-shadow: var(--shadow-lg); }
 .feature-static { opacity: 0.92; }
-.feature-icon { font-size: 1.5rem; }
+/* single-colour line icon (24×24, 1.5px stroke). It paints with currentColor, so this one
+   `color` recolours all nine glyphs and the dark theme picks up --secondary on its own.
+   For the boxed variants: wrap in a 38px rounded tile — `background: var(--surface-2);
+   border: 1px solid var(--border-strong)` for outlined, or `background: var(--accent-weak);
+   color: var(--accent-ink)` for the accent tile. */
+.feature-icon { display: block; width: 24px; height: 24px; color: var(--secondary); }
+a.feature:hover .feature-icon { color: var(--ink); }
 .feature-title { font-family: var(--font-display); font-weight: 600; font-size: 1rem; }
 .feature-desc { font-size: 0.85rem; color: var(--muted); }
 

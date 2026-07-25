@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { DU_SESSIONS, DU_DEPARTMENT_GROUPS } from "@/lib/du";
+import { DU_SESSIONS } from "@/lib/du";
+import { DeptSelect } from "@/components/dept-select";
 
 interface Scope { scopeKind: string; scopeRef: string }
 interface HallOption { hallId: number; name: string }
@@ -110,14 +111,7 @@ export function NewDriveForm({ scopes, isAdmin, halls }: { scopes: Scope[]; isAd
           <div className="row" style={{ marginTop: "0.6rem" }}>
             <label>
               Department
-              <select value={department} onChange={(e) => setDepartment(e.target.value)}>
-                <option value="">Any department</option>
-                {DU_DEPARTMENT_GROUPS.map((g) => (
-                  <optgroup key={g.faculty} label={g.faculty}>
-                    {g.departments.map((d) => <option key={d} value={d}>{d}</option>)}
-                  </optgroup>
-                ))}
-              </select>
+              <DeptSelect value={department} onChange={setDepartment} />
             </label>
             <label>
               Hall

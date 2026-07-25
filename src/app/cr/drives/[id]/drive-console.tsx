@@ -7,7 +7,8 @@ import { newIdem } from "@/lib/idem";
 import { Progress } from "@/components/progress";
 import { FormattedText, tidyText } from "@/components/rich-text";
 import { Icon } from "@/components/icon";
-import { DU_DEPARTMENT_GROUPS, DU_SESSIONS } from "@/lib/du";
+import { DU_SESSIONS } from "@/lib/du";
+import { DeptSelect } from "@/components/dept-select";
 
 interface DriveDetail {
   eventId: number; name: string; batch: string | null; status: string;
@@ -323,14 +324,7 @@ function RosterAdd({
         </p>
         <div className="roster-filters">
           <label>Department
-            <select value={department} onChange={(e) => setDepartment(e.target.value)}>
-              <option value="">Any department</option>
-              {DU_DEPARTMENT_GROUPS.map((g) => (
-                <optgroup key={g.faculty} label={g.faculty}>
-                  {g.departments.map((d) => <option key={d} value={d}>{d}</option>)}
-                </optgroup>
-              ))}
-            </select>
+            <DeptSelect value={department} onChange={setDepartment} />
           </label>
           <label>Hall
             <select value={hallId} onChange={(e) => setHallId(e.target.value)}>

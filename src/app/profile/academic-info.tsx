@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { DU_DEPARTMENT_GROUPS, DU_SESSIONS } from "@/lib/du";
+import { DU_SESSIONS } from "@/lib/du";
+import { DeptSelect } from "@/components/dept-select";
 
 interface HallOption { hallId: number; name: string }
 interface Current { department: string | null; hallId: number | null; hallName: string | null; session: string | null }
@@ -60,14 +61,7 @@ export function AcademicInfo({ halls, current }: { halls: HallOption[]; current:
         <div style={{ marginTop: "0.85rem", display: "grid", gap: "0.85rem" }}>
           <label>
             Department
-            <select value={department} onChange={(e) => setDepartment(e.target.value)}>
-              <option value="" disabled>Select department…</option>
-              {DU_DEPARTMENT_GROUPS.map((g) => (
-                <optgroup key={g.faculty} label={g.faculty}>
-                  {g.departments.map((d) => <option key={d} value={d}>{d}</option>)}
-                </optgroup>
-              ))}
-            </select>
+            <DeptSelect value={department} onChange={setDepartment} anyLabel="Select department…" />
           </label>
           <div className="row">
             <label>
